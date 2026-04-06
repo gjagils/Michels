@@ -6,20 +6,15 @@ import path from 'path';
 
 const SESSION_PATH = '/data/whatsapp-session';
 
-function cleanLockFiles(dir) {
-  const lockFiles = ['SingletonLock', 'SingletonCookie', 'SingletonSocket'];
+function clearSessionData() {
   try {
-    const entries = fs.readdirSync(dir, { withFileTypes: true });
-    for (const entry of entries) {
-      const full = path.join(dir, entry.name);
-      if (lockFiles.includes(entry.name)) {
-        fs.unlinkSync(full);
-        console.log(`[WhatsApp] Lock file verwijderd: ${full}`);
-      } else if (entry.isDirectory()) {
-        cleanLockFiles(full);
-      }
+    if (fs.existsSync(SESSION_PATH)) {
+      fs.rmSync(SESSION_PATH, { recursive: true, force: true });
+      console.log('[WhatsApp] Sessie data volledig verwijderd voor schone start');
     }
-  } catch {}
+  } catch (err) {
+    console.error('[WhatsApp] Kon sessie data niet verwijderen:', err.message);
+  }
 }
 
 class WhatsAppManager {
@@ -30,11 +25,11 @@ class WhatsAppManager {
     this.groupChat = null;
     this.onMessageCallback = null;
     this.statusListeners = [];
+    this.initAttempts = 0;
   }
 
   init() {
-    // Verwijder stale Chromium lock files bij startup
-    cleanLockFiles(SESSION_PATH);
+    this.initAttempts++;
 
     this.client = new Client({
       authStrategy: new LocalAuth({ dataPath: SESSION_PATH }),
@@ -46,6 +41,7 @@ class WhatsAppManager {
           '--disable-dev-shm-usage',
           '--disable-gpu',
           '--single-process',
+          '--no-zygote',
         ],
         executablePath: process.env.CHROMIUM_PATH || undefined,
       },
@@ -59,6 +55,7 @@ class WhatsAppManager {
 
     this.client.on('ready', async () => {
       this.qrCode = null;
+      this.initAttempts = 0;
       this.setStatus('connected');
       console.log('[WhatsApp] Client verbonden');
       await this.findGroup();
@@ -71,6 +68,12 @@ class WhatsAppManager {
     this.client.on('auth_failure', (msg) => {
       this.setStatus('auth_failed');
       console.error('[WhatsApp] Authenticatie mislukt:', msg);
+      // Bij auth failure, sessie wissen en opnieuw proberen
+      if (this.initAttempts < 3) {
+        console.log('[WhatsApp] Sessie wissen en opnieuw proberen...');
+        clearSessionData();
+        setTimeout(() => this.init(), 5000);
+      }
     });
 
     this.client.on('disconnected', (reason) => {
@@ -85,7 +88,17 @@ class WhatsAppManager {
       }
     });
 
-    this.client.initialize();
+    this.client.initialize().catch((err) => {
+      console.error('[WhatsApp] Initialize mislukt:', err.message);
+      if (this.initAttempts < 3) {
+        console.log('[WhatsApp] Sessie wissen en opnieuw proberen...');
+        clearSessionData();
+        setTimeout(() => this.init(), 5000);
+      } else {
+        console.error('[WhatsApp] Maximale pogingen bereikt. Herstart de container.');
+        this.setStatus('disconnected');
+      }
+    });
   }
 
   setStatus(status) {
