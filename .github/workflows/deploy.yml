@@ -100,8 +100,10 @@ jobs:
           }
           echo "Image pulled."
 
-          # Merge environment variables (use jq -n with --rawfile for multiline GOOGLE_PRIVATE_KEY)
+          # Build environment variables JSON
+          echo "$CURRENT_ENV" > /tmp/existing.json
           echo "$GOOGLE_PRIVATE_KEY" > /tmp/gpk.txt
+
           MERGED_ENV=$(jq -n \
             --arg v1 "$GOOGLE_SHEET_ID" \
             --arg v2 "$GOOGLE_SERVICE_ACCOUNT_EMAIL" \
@@ -112,7 +114,7 @@ jobs:
             --arg v7 "${TRAINING_DAY:-thursday}" \
             --arg v8 "${TRAINING_TIME:-20:00}" \
             --arg v9 "${SUMMARY_HOURS_BEFORE:-2}" \
-            --argjson existing "$CURRENT_ENV" \
+            --slurpfile existing /tmp/existing.json \
             '[ {"name":"GOOGLE_SHEET_ID","value":$v1},
                {"name":"GOOGLE_SERVICE_ACCOUNT_EMAIL","value":$v2},
                {"name":"GOOGLE_PRIVATE_KEY","value":($v3 | rtrimstr("\n"))},
@@ -123,8 +125,8 @@ jobs:
                {"name":"TRAINING_TIME","value":$v8},
                {"name":"SUMMARY_HOURS_BEFORE","value":$v9}
             ] as $new | ($new | map(.name)) as $new_names |
-            [$existing[] | select(.name as $n | $new_names | index($n) | not)] + $new')
-          rm -f /tmp/gpk.txt
+            [($existing[0] // [])[] | select(.name as $n | $new_names | index($n) | not)] + $new')
+          rm -f /tmp/gpk.txt /tmp/existing.json
 
           # Redeploy stack
           STACK_FILE=$(cat docker-compose.yml)
