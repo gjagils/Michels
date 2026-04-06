@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Squash Team Manager</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🏸 Squash Team Manager</h1>
+      <div id="whatsapp-status" class="status-badge disconnected">Verbinden...</div>
+    </header>
+
+    <div id="qr-section" class="card hidden">
+      <h2>WhatsApp koppelen</h2>
+      <p>Scan de QR-code met WhatsApp op de bot-telefoon:</p>
+      <div id="qr-container"></div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>Volgende training</h2>
+        <div id="next-training">Laden...</div>
+        <div class="actions">
+          <button onclick="sendPoll()" class="btn btn-primary">📊 Poll versturen</button>
+          <button onclick="sendSummary()" class="btn btn-secondary">📋 Samenvatting sturen</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Huidige poll</h2>
+        <div id="poll-status">Geen actieve poll</div>
+        <div id="poll-responses"></div>
+      </div>
+
+      <div class="card">
+        <h2>Leden</h2>
+        <div id="members-list">Laden...</div>
+      </div>
+
+      <div class="card">
+        <h2>Handmatig bericht</h2>
+        <textarea id="custom-message" placeholder="Typ een bericht..." rows="3"></textarea>
+        <div class="actions">
+          <button onclick="sendToGroup()" class="btn btn-primary">Naar groep</button>
+          <button onclick="sendToTrainer()" class="btn btn-secondary">Naar trainer</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast" class="toast hidden"></div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

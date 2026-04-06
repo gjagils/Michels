@@ -1,0 +1,23 @@
+services:
+  squash-bot:
+    image: ghcr.io/gjagils/michels:latest
+    container_name: squash-team-manager
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8400}:8400"
+    volumes:
+      - whatsapp-data:/data
+    environment:
+      - PORT=${PORT:-8400}
+      - GOOGLE_SHEET_ID=${GOOGLE_SHEET_ID}
+      - GOOGLE_SERVICE_ACCOUNT_EMAIL=${GOOGLE_SERVICE_ACCOUNT_EMAIL}
+      - GOOGLE_PRIVATE_KEY=${GOOGLE_PRIVATE_KEY}
+      - GROUP_NAME=${GROUP_NAME}
+      - TRAINER_PHONE=${TRAINER_PHONE}
+      - POLL_CRON=${POLL_CRON:-0 18 * * 1}
+      - TRAINING_DAY=${TRAINING_DAY:-thursday}
+      - TRAINING_TIME=${TRAINING_TIME:-20:00}
+      - SUMMARY_HOURS_BEFORE=${SUMMARY_HOURS_BEFORE:-2}
+
+volumes:
+  whatsapp-data:
