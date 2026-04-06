@@ -12,7 +12,7 @@ function createApp() {
   app.use(express.json());
   app.use(express.static(join(__dirname, 'public')));
 
-  // --- API Routes ---
+  // --- Status ---
 
   app.get('/api/status', (req, res) => {
     res.json({
@@ -20,6 +20,8 @@ function createApp() {
       scheduler: scheduler.getState(),
     });
   });
+
+  // --- Leden ---
 
   app.get('/api/members', async (req, res) => {
     try {
@@ -30,6 +32,8 @@ function createApp() {
     }
   });
 
+  // --- Trainingen ---
+
   app.get('/api/trainings', async (req, res) => {
     try {
       const trainings = await sheets.getTrainings();
@@ -38,6 +42,37 @@ function createApp() {
       res.status(500).json({ error: err.message });
     }
   });
+
+  app.get('/api/trainings/next', async (req, res) => {
+    try {
+      const training = await sheets.getNextTraining();
+      res.json(training || null);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // --- Wedstrijden ---
+
+  app.get('/api/matches', async (req, res) => {
+    try {
+      const data = await sheets.getMatches();
+      res.json(data);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get('/api/matches/next', async (req, res) => {
+    try {
+      const match = await sheets.getNextMatch();
+      res.json(match || null);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // --- Aanwezigheid ---
 
   app.get('/api/attendance/:date', async (req, res) => {
     try {
@@ -48,10 +83,21 @@ function createApp() {
     }
   });
 
-  app.post('/api/poll/send', async (req, res) => {
+  // --- Acties ---
+
+  app.post('/api/poll/training', async (req, res) => {
     try {
-      await scheduler.sendPoll();
-      res.json({ ok: true, message: 'Poll verstuurd' });
+      await scheduler.sendTrainingPoll();
+      res.json({ ok: true, message: 'Training poll verstuurd' });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/poll/match', async (req, res) => {
+    try {
+      await scheduler.sendMatchReminder();
+      res.json({ ok: true, message: 'Wedstrijd reminder verstuurd' });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

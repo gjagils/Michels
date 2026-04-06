@@ -19,34 +19,71 @@
       <div id="qr-container"></div>
     </div>
 
-    <div class="grid">
-      <div class="card">
-        <h2>Volgende training</h2>
-        <div id="next-training">Laden...</div>
-        <div class="actions">
-          <button onclick="sendPoll()" class="btn btn-primary">📊 Poll versturen</button>
-          <button onclick="sendSummary()" class="btn btn-secondary">📋 Samenvatting sturen</button>
+    <nav class="tabs">
+      <button class="tab active" data-tab="dashboard">Dashboard</button>
+      <button class="tab" data-tab="matches">Wedstrijden</button>
+      <button class="tab" data-tab="trainings">Trainingen</button>
+      <button class="tab" data-tab="members">Leden</button>
+    </nav>
+
+    <!-- Dashboard -->
+    <div id="tab-dashboard" class="tab-content active">
+      <div class="grid">
+        <div class="card">
+          <h2>Volgende training</h2>
+          <div id="next-training">Laden...</div>
+          <div class="actions">
+            <button onclick="sendTrainingPoll()" class="btn btn-primary">📊 Training poll</button>
+            <button onclick="sendSummary()" class="btn btn-secondary">📋 Samenvatting</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Volgende wedstrijd</h2>
+          <div id="next-match">Laden...</div>
+          <div class="actions">
+            <button onclick="sendMatchReminder()" class="btn btn-primary">📢 Wedstrijd reminder</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Actieve poll</h2>
+          <div id="poll-status">Geen actieve poll</div>
+          <div id="poll-responses"></div>
+        </div>
+
+        <div class="card">
+          <h2>Handmatig bericht</h2>
+          <textarea id="custom-message" placeholder="Typ een bericht..." rows="3"></textarea>
+          <div class="actions">
+            <button onclick="sendToGroup()" class="btn btn-primary">Naar groep</button>
+            <button onclick="sendToTrainer()" class="btn btn-secondary">Naar trainer</button>
+          </div>
         </div>
       </div>
+    </div>
 
+    <!-- Wedstrijden -->
+    <div id="tab-matches" class="tab-content">
       <div class="card">
-        <h2>Huidige poll</h2>
-        <div id="poll-status">Geen actieve poll</div>
-        <div id="poll-responses"></div>
+        <h2>Wedstrijdschema</h2>
+        <div id="matches-table">Laden...</div>
       </div>
+    </div>
 
+    <!-- Trainingen -->
+    <div id="tab-trainings" class="tab-content">
       <div class="card">
-        <h2>Leden</h2>
+        <h2>Trainingsschema</h2>
+        <div id="trainings-table">Laden...</div>
+      </div>
+    </div>
+
+    <!-- Leden -->
+    <div id="tab-members" class="tab-content">
+      <div class="card">
+        <h2>Ledenlijst</h2>
         <div id="members-list">Laden...</div>
-      </div>
-
-      <div class="card">
-        <h2>Handmatig bericht</h2>
-        <textarea id="custom-message" placeholder="Typ een bericht..." rows="3"></textarea>
-        <div class="actions">
-          <button onclick="sendToGroup()" class="btn btn-primary">Naar groep</button>
-          <button onclick="sendToTrainer()" class="btn btn-secondary">Naar trainer</button>
-        </div>
       </div>
     </div>
 
