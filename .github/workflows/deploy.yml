@@ -70,16 +70,18 @@ jobs:
           set -euo pipefail
 
           # Get stack info
-          STACK_INFO=$(curl -sf -H "X-API-Key: $PORTAINER_API_TOKEN" \
-            "$PORTAINER_URL/api/stacks/$PORTAINER_STACK_ID" 2>&1) || {
-            echo "::warning::Could not fetch stack info, using PORTAINER_ENDPOINT_ID secret"
-            STACK_INFO="{}"
-          }
+          ENDPOINT_ID="$PORTAINER_ENDPOINT_ID"
+          CURRENT_ENV="[]"
 
-          # Get endpoint ID from stack info or fallback to secret
-          ENDPOINT_ID=$(echo "$STACK_INFO" | jq -r '.EndpointId // empty')
-          if [ -z "$ENDPOINT_ID" ]; then
-            ENDPOINT_ID="$PORTAINER_ENDPOINT_ID"
+          if STACK_INFO=$(curl -sf -H "X-API-Key: $PORTAINER_API_TOKEN" \
+            "$PORTAINER_URL/api/stacks/$PORTAINER_STACK_ID" 2>/dev/null); then
+            ENDPOINT_ID=$(echo "$STACK_INFO" | jq -r '.EndpointId // empty')
+            CURRENT_ENV=$(echo "$STACK_INFO" | jq '.Env // []')
+            if [ -z "$ENDPOINT_ID" ]; then
+              ENDPOINT_ID="$PORTAINER_ENDPOINT_ID"
+            fi
+          else
+            echo "::warning::Could not fetch stack info, using fallback ENDPOINT_ID=$ENDPOINT_ID"
           fi
 
           if [ -z "$ENDPOINT_ID" ]; then
@@ -87,8 +89,6 @@ jobs:
             exit 1
           fi
           echo "Endpoint ID: $ENDPOINT_ID"
-
-          CURRENT_ENV=$(echo "$STACK_INFO" | jq '.Env // []')
 
           # Pull latest image
           REPO_LC=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
