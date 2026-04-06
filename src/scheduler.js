@@ -100,21 +100,14 @@ class Scheduler {
       const trainerText = withTrainer ? 'met trainer' : 'zonder trainer';
       const time = training?.time || '20:00';
 
-      // Probeer echte poll, fallback naar tekst
-      const pollQuestion = `🏸 Training ${dateStr} om ${time} (${trainerText}) — Kom je?`;
-      try {
-        await whatsapp.sendPollToGroup(pollQuestion, ['✅ Ja, ik kom!', '❌ Nee, kan niet']);
-      } catch (err) {
-        console.log('[Scheduler] Poll niet ondersteund, fallback naar tekst:', err.message);
-        const message =
-          `🏸 *Squash training ${dateStr} om ${time}*\n` +
-          `_(${trainerText})_\n\n` +
-          `Wie komt er trainen?\n\n` +
-          `Reageer met:\n` +
-          `✅ — Ik kom!\n` +
-          `❌ — Kan niet`;
-        await whatsapp.sendToGroup(message);
-      }
+      const message =
+        `🏸 *Squash training ${dateStr} om ${time}*\n` +
+        `_(${trainerText})_\n\n` +
+        `Wie komt er trainen?\n\n` +
+        `Reageer met:\n` +
+        `✅ — Ik kom!\n` +
+        `❌ — Kan niet`;
+      await whatsapp.sendToGroup(message);
 
       // responses slaat op per telefoonnummer → { phone, name, attending }
       this.pendingPoll = {
