@@ -89,15 +89,23 @@ class Scheduler {
       }
 
       const trainerText = withTrainer ? 'met trainer' : 'zonder trainer';
-      const message =
-        `🏸 *Squash training ${dateStr} om 20:00*\n` +
-        `_(${trainerText})_\n\n` +
-        `Wie komt er trainen?\n\n` +
-        `Reageer met:\n` +
-        `✅ — Ik kom!\n` +
-        `❌ — Kan niet`;
+      const time = training?.time || '20:00';
 
-      await whatsapp.sendToGroup(message);
+      // Stuur echte WhatsApp poll met fallback naar tekst
+      const pollQuestion = `🏸 Training ${dateStr} om ${time} (${trainerText}) — Kom je?`;
+      try {
+        await whatsapp.sendPollToGroup(pollQuestion, ['✅ Ja, ik kom!', '❌ Nee, kan niet']);
+      } catch (err) {
+        console.log('[Scheduler] Poll niet ondersteund, fallback naar tekst:', err.message);
+        const message =
+          `🏸 *Squash training ${dateStr} om ${time}*\n` +
+          `_(${trainerText})_\n\n` +
+          `Wie komt er trainen?\n\n` +
+          `Reageer met:\n` +
+          `✅ — Ik kom!\n` +
+          `❌ — Kan niet`;
+        await whatsapp.sendToGroup(message);
+      }
 
       this.pendingPoll = {
         date: sheetDate,
@@ -247,7 +255,37 @@ class Scheduler {
     }
   }
 
-  // ── Response Handling ──────────────────────────────
+  // ── Poll Vote Handling ──────────────────────────────
+
+  async handleVote(vote) {
+    if (!this.pendingPoll) return;
+
+    try {
+      const voter = vote.voter;
+      const contact = await voter;
+      const name = contact.pushname || contact.name || 'Onbekend';
+      const selectedOptions = vote.selectedOptions?.map((o) => o.name) || [];
+
+      const isYes = selectedOptions.some((o) => o.includes('Ja'));
+      const isNo = selectedOptions.some((o) => o.includes('Nee'));
+
+      if (!isYes && !isNo) return;
+
+      this.pendingPoll.responses.set(name, isYes);
+
+      try {
+        await sheets.updateAttendance(this.pendingPoll.date, name, isYes);
+      } catch (err) {
+        console.error('[Scheduler] Fout bij opslaan vote:', err.message);
+      }
+
+      console.log(`[Scheduler] Poll vote: ${name} → ${isYes ? 'Ja' : 'Nee'}`);
+    } catch (err) {
+      console.error('[Scheduler] Fout bij verwerken vote:', err.message);
+    }
+  }
+
+  // ── Text Response Handling ─────────────────────────
 
   async handleResponse(msg) {
     if (!this.pendingPoll) return;

@@ -1,5 +1,5 @@
 import pkg from 'whatsapp-web.js';
-const { Client, LocalAuth } = pkg;
+const { Client, LocalAuth, Poll } = pkg;
 import QRCode from 'qrcode';
 import fs from 'fs';
 import path from 'path';
@@ -24,6 +24,7 @@ class WhatsAppManager {
     this.status = 'disconnected';
     this.groupChat = null;
     this.onMessageCallback = null;
+    this.onVoteCallback = null;
     this.statusListeners = [];
     this.initAttempts = 0;
   }
@@ -88,6 +89,13 @@ class WhatsAppManager {
       }
     });
 
+    // Poll votes opvangen
+    this.client.on('vote', (vote) => {
+      if (this.onVoteCallback) {
+        this.onVoteCallback(vote);
+      }
+    });
+
     this.client.initialize().catch((err) => {
       console.error('[WhatsApp] Initialize mislukt:', err.message);
       if (this.initAttempts < 3) {
@@ -112,6 +120,10 @@ class WhatsAppManager {
 
   onMessage(callback) {
     this.onMessageCallback = callback;
+  }
+
+  onVote(callback) {
+    this.onVoteCallback = callback;
   }
 
   async findGroup() {
@@ -142,6 +154,18 @@ class WhatsAppManager {
     }
     await this.groupChat.sendMessage(message);
     console.log(`[WhatsApp] Bericht naar groep gestuurd`);
+  }
+
+  async sendPollToGroup(question, options, allowMultiple = false) {
+    if (!this.groupChat) {
+      await this.findGroup();
+    }
+    if (!this.groupChat) {
+      throw new Error('WhatsApp groep niet gevonden');
+    }
+    const poll = new Poll(question, options, { allowMultipleAnswers: allowMultiple });
+    await this.groupChat.sendMessage(poll);
+    console.log(`[WhatsApp] Poll naar groep gestuurd: ${question}`);
   }
 
   async sendToTrainer(message) {

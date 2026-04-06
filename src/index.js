@@ -40,6 +40,10 @@ async function main() {
     scheduler.handleResponse(msg);
   });
 
+  whatsapp.onVote((vote) => {
+    scheduler.handleVote(vote);
+  });
+
   whatsapp.onStatusChange((status) => {
     if (status === 'connected') {
       scheduler.start();
