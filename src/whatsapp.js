@@ -1,6 +1,26 @@
 import pkg from 'whatsapp-web.js';
 const { Client, LocalAuth } = pkg;
 import QRCode from 'qrcode';
+import fs from 'fs';
+import path from 'path';
+
+const SESSION_PATH = '/data/whatsapp-session';
+
+function cleanLockFiles(dir) {
+  const lockFiles = ['SingletonLock', 'SingletonCookie', 'SingletonSocket'];
+  try {
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      const full = path.join(dir, entry.name);
+      if (lockFiles.includes(entry.name)) {
+        fs.unlinkSync(full);
+        console.log(`[WhatsApp] Lock file verwijderd: ${full}`);
+      } else if (entry.isDirectory()) {
+        cleanLockFiles(full);
+      }
+    }
+  } catch {}
+}
 
 class WhatsAppManager {
   constructor() {
@@ -13,8 +33,11 @@ class WhatsAppManager {
   }
 
   init() {
+    // Verwijder stale Chromium lock files bij startup
+    cleanLockFiles(SESSION_PATH);
+
     this.client = new Client({
-      authStrategy: new LocalAuth({ dataPath: '/data/whatsapp-session' }),
+      authStrategy: new LocalAuth({ dataPath: SESSION_PATH }),
       puppeteer: {
         headless: true,
         args: [
