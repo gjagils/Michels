@@ -15,7 +15,7 @@ ENV CHROMIUM_PATH=/usr/bin/chromium-browser
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm install --omit=dev
 
 COPY src/ ./src/
 
