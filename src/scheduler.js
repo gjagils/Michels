@@ -26,7 +26,7 @@ class Scheduler {
   getNextWednesday() {
     const now = new Date();
     const date = new Date(now);
-    const diff = (3 - now.getDay() + 7) % 7 || 7; // 3 = wednesday
+    const diff = (3 - now.getDay() + 7) % 7 || 7;
     date.setDate(now.getDate() + diff);
     date.setHours(0, 0, 0, 0);
     return date;
@@ -35,27 +35,39 @@ class Scheduler {
   getNextFriday() {
     const now = new Date();
     const date = new Date(now);
-    const diff = (5 - now.getDay() + 7) % 7 || 7; // 5 = friday
+    const diff = (5 - now.getDay() + 7) % 7 || 7;
     date.setDate(now.getDate() + diff);
     date.setHours(0, 0, 0, 0);
     return date;
   }
 
+  // Haal nummer op uit WhatsApp msg.from (316xxxxx@c.us → 316xxxxx)
+  extractPhone(from) {
+    return from?.replace('@c.us', '') || '';
+  }
+
+  // Zoek ledennaam bij telefoonnummer
+  async findMemberByPhone(phone) {
+    try {
+      const members = await sheets.getMembers();
+      return members.find((m) => phone.endsWith(m.phone) || m.phone.endsWith(phone));
+    } catch {
+      return null;
+    }
+  }
+
   start() {
     const tz = { timezone: 'Europe/Amsterdam' };
 
-    // Maandag 18:00 — Training poll
     this.jobs.poll = cron.schedule('0 18 * * 1', () => this.sendTrainingPoll(), tz);
     console.log('[Scheduler] Training poll: maandag 18:00');
 
-    // Dinsdag 09:00 — Herinnering + wedstrijd check
     this.jobs.reminder = cron.schedule('0 9 * * 2', () => {
       this.sendPollReminder();
       this.sendMatchReminder();
     }, tz);
     console.log('[Scheduler] Herinnering + wedstrijd: dinsdag 09:00');
 
-    // Dinsdag 22:00 — Samenvatting
     this.jobs.summary = cron.schedule('0 22 * * 2', () => this.sendSummary(), tz);
     console.log('[Scheduler] Samenvatting: dinsdag 22:00');
 
@@ -66,7 +78,6 @@ class Scheduler {
 
   async sendTrainingPoll() {
     try {
-      // Probeer eerst de volgende training uit sheets te halen
       let training = null;
       try {
         training = await sheets.getNextTraining();
@@ -78,12 +89,10 @@ class Scheduler {
       const dateStr = this.formatDisplayDate(wednesday);
       const sheetDate = this.formatSheetDate(wednesday);
 
-      // Bepaal of het een trainer-week is
       let withTrainer = true;
       if (training) {
         withTrainer = training.withTrainer;
       } else {
-        // Fallback: week-om-week op basis van weeknummer
         const weekNum = Math.ceil((wednesday - new Date(wednesday.getFullYear(), 0, 1)) / 604800000);
         withTrainer = weekNum % 2 === 0;
       }
@@ -91,7 +100,7 @@ class Scheduler {
       const trainerText = withTrainer ? 'met trainer' : 'zonder trainer';
       const time = training?.time || '20:00';
 
-      // Stuur echte WhatsApp poll met fallback naar tekst
+      // Probeer echte poll, fallback naar tekst
       const pollQuestion = `🏸 Training ${dateStr} om ${time} (${trainerText}) — Kom je?`;
       try {
         await whatsapp.sendPollToGroup(pollQuestion, ['✅ Ja, ik kom!', '❌ Nee, kan niet']);
@@ -107,11 +116,12 @@ class Scheduler {
         await whatsapp.sendToGroup(message);
       }
 
+      // responses slaat op per telefoonnummer → { phone, name, attending }
       this.pendingPoll = {
         date: sheetDate,
         displayDate: dateStr,
         withTrainer,
-        responses: new Map(),
+        responses: new Map(), // key = phone, value = { name, attending }
         rowIndex: training?.rowIndex,
       };
 
@@ -162,7 +172,6 @@ class Scheduler {
         return;
       }
 
-      // Check of de wedstrijd aanstaande vrijdag is
       const [day, month, year] = match.date.split('-').map(Number);
       const matchDate = new Date(year, month - 1, day);
       const friday = this.getNextFriday();
@@ -220,14 +229,16 @@ class Scheduler {
       let members = [];
       try { members = await sheets.getMembers(); } catch {}
 
-      for (const [name, attending] of responses) {
-        if (attending) coming.push(name);
-        else notComing.push(name);
+      // Responses zijn nu op telefoonnummer
+      for (const [phone, data] of responses) {
+        if (data.attending) coming.push(data.name);
+        else notComing.push(data.name);
       }
 
-      const responded = new Set(responses.keys());
+      // Wie heeft niet gereageerd? Check op telefoonnummer
+      const respondedPhones = new Set(responses.keys());
       const noResponse = members
-        .filter((m) => !m.isTrainer && !responded.has(m.name))
+        .filter((m) => !m.isTrainer && !respondedPhones.has(m.phone))
         .map((m) => m.name);
 
       const trainerText = withTrainer ? 'met trainer' : 'zonder trainer';
@@ -242,13 +253,10 @@ class Scheduler {
         summary += `\n\n❓ *Geen reactie (${noResponse.length}):*\n${noResponse.map((n) => `  • ${n}`).join('\n')}`;
       }
 
-      // Stuur naar groep EN naar trainer
       await whatsapp.sendToGroup(summary);
       try { await whatsapp.sendToTrainer(summary); } catch {}
 
       console.log('[Scheduler] Samenvatting verstuurd');
-
-      // Reset poll
       this.pendingPoll = null;
     } catch (err) {
       console.error('[Scheduler] Fout bij samenvatting:', err.message);
@@ -261,9 +269,8 @@ class Scheduler {
     if (!this.pendingPoll) return;
 
     try {
-      const voter = vote.voter;
-      const contact = await voter;
-      const name = contact.pushname || contact.name || 'Onbekend';
+      const contact = await vote.voter;
+      const phone = contact.id?.user || '';
       const selectedOptions = vote.selectedOptions?.map((o) => o.name) || [];
 
       const isYes = selectedOptions.some((o) => o.includes('Ja'));
@@ -271,7 +278,11 @@ class Scheduler {
 
       if (!isYes && !isNo) return;
 
-      this.pendingPoll.responses.set(name, isYes);
+      // Zoek naam uit ledenlijst op basis van telefoonnummer
+      const member = await this.findMemberByPhone(phone);
+      const name = member?.name || contact.pushname || contact.name || phone;
+
+      this.pendingPoll.responses.set(member?.phone || phone, { name, attending: isYes });
 
       try {
         await sheets.updateAttendance(this.pendingPoll.date, name, isYes);
@@ -279,7 +290,7 @@ class Scheduler {
         console.error('[Scheduler] Fout bij opslaan vote:', err.message);
       }
 
-      console.log(`[Scheduler] Poll vote: ${name} → ${isYes ? 'Ja' : 'Nee'}`);
+      console.log(`[Scheduler] Poll vote: ${name} (${phone}) → ${isYes ? 'Ja' : 'Nee'}`);
     } catch (err) {
       console.error('[Scheduler] Fout bij verwerken vote:', err.message);
     }
@@ -296,31 +307,41 @@ class Scheduler {
 
     if (!isYes && !isNo) return;
 
+    const phone = this.extractPhone(msg.from);
     const contact = await msg.getContact();
-    const name = contact.pushname || contact.name || msg.from;
-    const attending = isYes;
 
-    this.pendingPoll.responses.set(name, attending);
+    // Zoek naam uit ledenlijst op basis van telefoonnummer
+    const member = await this.findMemberByPhone(phone);
+    const name = member?.name || contact.pushname || contact.name || phone;
+
+    this.pendingPoll.responses.set(member?.phone || phone, { name, attending: isYes });
 
     try {
-      await sheets.updateAttendance(this.pendingPoll.date, name, attending);
+      await sheets.updateAttendance(this.pendingPoll.date, name, isYes);
     } catch (err) {
       console.error('[Scheduler] Fout bij opslaan aanwezigheid:', err.message);
     }
 
-    console.log(`[Scheduler] Reactie: ${name} → ${attending ? 'Ja' : 'Nee'}`);
+    console.log(`[Scheduler] Reactie: ${name} (${phone}) → ${isYes ? 'Ja' : 'Nee'}`);
   }
 
   // ── State for web interface ────────────────────────
 
   getState() {
+    let responses = {};
+    if (this.pendingPoll) {
+      for (const [phone, data] of this.pendingPoll.responses) {
+        responses[data.name] = data.attending;
+      }
+    }
+
     return {
       pendingPoll: this.pendingPoll
         ? {
             date: this.pendingPoll.date,
             displayDate: this.pendingPoll.displayDate,
             withTrainer: this.pendingPoll.withTrainer,
-            responses: Object.fromEntries(this.pendingPoll.responses),
+            responses,
           }
         : null,
       jobs: {
