@@ -100,20 +100,22 @@ jobs:
           }
           echo "Image pulled."
 
-          # Merge environment variables
-          MERGED_ENV=$(echo "$CURRENT_ENV" | jq \
+          # Merge environment variables (use jq -n with --rawfile for multiline GOOGLE_PRIVATE_KEY)
+          echo "$GOOGLE_PRIVATE_KEY" > /tmp/gpk.txt
+          MERGED_ENV=$(jq -n \
             --arg v1 "$GOOGLE_SHEET_ID" \
             --arg v2 "$GOOGLE_SERVICE_ACCOUNT_EMAIL" \
-            --arg v3 "$GOOGLE_PRIVATE_KEY" \
+            --rawfile v3 /tmp/gpk.txt \
             --arg v4 "$GROUP_NAME" \
             --arg v5 "$TRAINER_PHONE" \
             --arg v6 "${POLL_CRON:-0 18 * * 1}" \
             --arg v7 "${TRAINING_DAY:-thursday}" \
             --arg v8 "${TRAINING_TIME:-20:00}" \
             --arg v9 "${SUMMARY_HOURS_BEFORE:-2}" \
+            --argjson existing "$CURRENT_ENV" \
             '[ {"name":"GOOGLE_SHEET_ID","value":$v1},
                {"name":"GOOGLE_SERVICE_ACCOUNT_EMAIL","value":$v2},
-               {"name":"GOOGLE_PRIVATE_KEY","value":$v3},
+               {"name":"GOOGLE_PRIVATE_KEY","value":($v3 | rtrimstr("\n"))},
                {"name":"GROUP_NAME","value":$v4},
                {"name":"TRAINER_PHONE","value":$v5},
                {"name":"POLL_CRON","value":$v6},
@@ -121,7 +123,8 @@ jobs:
                {"name":"TRAINING_TIME","value":$v8},
                {"name":"SUMMARY_HOURS_BEFORE","value":$v9}
             ] as $new | ($new | map(.name)) as $new_names |
-            [.[] | select(.name as $n | $new_names | index($n) | not)] + $new')
+            [$existing[] | select(.name as $n | $new_names | index($n) | not)] + $new')
+          rm -f /tmp/gpk.txt
 
           # Redeploy stack
           STACK_FILE=$(cat docker-compose.yml)
