@@ -23,6 +23,7 @@ async function fetchStatus() {
     const data = await res.json();
     updateWhatsAppStatus(data.whatsapp);
     updatePoll(data.scheduler);
+    updateScheduleInfo(data.scheduler);
   } catch {
     document.getElementById('whatsapp-status').textContent = 'Fout';
     document.getElementById('whatsapp-status').className = 'status-badge disconnected';
@@ -52,6 +53,16 @@ function updateWhatsAppStatus(wa) {
   }
 
   if (wa.group) badge.textContent += ` — ${wa.group}`;
+}
+
+function updateScheduleInfo(sched) {
+  const el = document.getElementById('schedule-info');
+  if (!el) return;
+  if (sched.jobs) {
+    el.innerHTML = Object.values(sched.jobs)
+      .map((j) => `<div style="padding:0.3rem 0;border-bottom:1px solid var(--border)">🕐 ${j}</div>`)
+      .join('');
+  }
 }
 
 function updatePoll(sched) {
@@ -230,6 +241,16 @@ async function sendTrainingPoll() {
     fetchStatus();
   } catch {
     showToast('Fout bij versturen poll', 'error');
+  }
+}
+
+async function sendPollReminder() {
+  try {
+    const res = await fetch('/api/poll/reminder', { method: 'POST' });
+    const data = await res.json();
+    showToast(data.ok ? 'Herinnering verstuurd!' : data.error, data.ok ? 'success' : 'error');
+  } catch {
+    showToast('Fout bij versturen herinnering', 'error');
   }
 }
 

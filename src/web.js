@@ -94,6 +94,15 @@ function createApp() {
     }
   });
 
+  app.post('/api/poll/reminder', async (req, res) => {
+    try {
+      await scheduler.sendPollReminder();
+      res.json({ ok: true, message: 'Herinnering verstuurd' });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.post('/api/poll/match', async (req, res) => {
     try {
       await scheduler.sendMatchReminder();

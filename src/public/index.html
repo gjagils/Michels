@@ -33,7 +33,8 @@
           <h2>Volgende training</h2>
           <div id="next-training">Laden...</div>
           <div class="actions">
-            <button onclick="sendTrainingPoll()" class="btn btn-primary">📊 Training poll</button>
+            <button onclick="sendTrainingPoll()" class="btn btn-primary">📊 Poll versturen</button>
+            <button onclick="sendPollReminder()" class="btn btn-secondary">⏰ Herinnering</button>
             <button onclick="sendSummary()" class="btn btn-secondary">📋 Samenvatting</button>
           </div>
         </div>
@@ -44,6 +45,11 @@
           <div class="actions">
             <button onclick="sendMatchReminder()" class="btn btn-primary">📢 Wedstrijd reminder</button>
           </div>
+        </div>
+
+        <div class="card">
+          <h2>Automatisch schema</h2>
+          <div id="schedule-info"></div>
         </div>
 
         <div class="card">
