@@ -85,6 +85,15 @@ function createApp() {
 
   // --- Acties ---
 
+  app.post('/api/poll/test', async (req, res) => {
+    try {
+      await whatsapp.sendPollToGroup('Test poll', ['Optie A', 'Optie B']);
+      res.json({ ok: true, message: 'Test poll verstuurd' });
+    } catch (err) {
+      res.status(500).json({ error: err.message, stack: err.stack });
+    }
+  });
+
   app.post('/api/poll/training', async (req, res) => {
     try {
       await scheduler.sendTrainingPoll();
