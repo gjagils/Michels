@@ -12,6 +12,7 @@ env:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    environment: portainer
     permissions:
       contents: read
       packages: write
@@ -56,92 +57,27 @@ jobs:
           PORTAINER_URL: ${{ secrets.PORTAINER_URL }}
           PORTAINER_API_TOKEN: ${{ secrets.PORTAINER_API_TOKEN }}
           PORTAINER_STACK_ID: ${{ secrets.PORTAINER_STACK_ID }}
-          PORTAINER_ENDPOINT_ID: ${{ secrets.PORTAINER_ENDPOINT_ID }}
-          GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
-          GOOGLE_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_EMAIL }}
-          GOOGLE_PRIVATE_KEY: ${{ secrets.GOOGLE_PRIVATE_KEY }}
-          GROUP_NAME: ${{ secrets.GROUP_NAME }}
-          TRAINER_PHONE: ${{ secrets.TRAINER_PHONE }}
-          POLL_CRON: ${{ secrets.POLL_CRON }}
-          TRAINING_DAY: ${{ secrets.TRAINING_DAY }}
-          TRAINING_TIME: ${{ secrets.TRAINING_TIME }}
-          SUMMARY_HOURS_BEFORE: ${{ secrets.SUMMARY_HOURS_BEFORE }}
         run: |
-          set -euo pipefail
+          STACK_INFO=$(curl -s -H "X-API-Key: $PORTAINER_API_TOKEN" \
+            "$PORTAINER_URL/api/stacks/$PORTAINER_STACK_ID")
+          ENDPOINT_ID=$(echo "$STACK_INFO" | jq -r '.EndpointId')
+          CURRENT_ENV=$(echo "$STACK_INFO" | jq '.Env // []')
 
-          # Get stack info
-          ENDPOINT_ID="$PORTAINER_ENDPOINT_ID"
-          CURRENT_ENV="[]"
-
-          if STACK_INFO=$(curl -sf -H "X-API-Key: $PORTAINER_API_TOKEN" \
-            "$PORTAINER_URL/api/stacks/$PORTAINER_STACK_ID" 2>/dev/null); then
-            ENDPOINT_ID=$(echo "$STACK_INFO" | jq -r '.EndpointId // empty')
-            CURRENT_ENV=$(echo "$STACK_INFO" | jq '.Env // []')
-            if [ -z "$ENDPOINT_ID" ]; then
-              ENDPOINT_ID="$PORTAINER_ENDPOINT_ID"
-            fi
-          else
-            echo "::warning::Could not fetch stack info, using fallback ENDPOINT_ID=$ENDPOINT_ID"
-          fi
-
-          if [ -z "$ENDPOINT_ID" ]; then
-            echo "::error::No Endpoint ID found. Set PORTAINER_ENDPOINT_ID secret."
-            exit 1
-          fi
-          echo "Endpoint ID: $ENDPOINT_ID"
-
-          # Pull latest image
-          REPO_LC=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          IMAGE_LOWER=$(echo "$IMAGE_NAME" | tr '[:upper:]' '[:lower:]')
           echo "Pulling latest image..."
-          curl -sf -X POST \
+          curl -s -X POST \
             -H "X-API-Key: $PORTAINER_API_TOKEN" \
-            "$PORTAINER_URL/api/endpoints/$ENDPOINT_ID/docker/images/create?fromImage=ghcr.io%2F${REPO_LC}&tag=latest" || {
-            echo "::warning::Image pull via Portainer failed, continuing..."
-          }
+            "$PORTAINER_URL/api/endpoints/$ENDPOINT_ID/docker/images/create?fromImage=ghcr.io%2F${IMAGE_LOWER}&tag=latest"
           echo "Image pulled."
 
-          # Build environment variables JSON
-          echo "$CURRENT_ENV" > /tmp/existing.json
-          echo "$GOOGLE_PRIVATE_KEY" > /tmp/gpk.txt
-
-          MERGED_ENV=$(jq -n \
-            --arg v1 "$GOOGLE_SHEET_ID" \
-            --arg v2 "$GOOGLE_SERVICE_ACCOUNT_EMAIL" \
-            --rawfile v3 /tmp/gpk.txt \
-            --arg v4 "$GROUP_NAME" \
-            --arg v5 "$TRAINER_PHONE" \
-            --arg v6 "${POLL_CRON:-0 18 * * 1}" \
-            --arg v7 "${TRAINING_DAY:-thursday}" \
-            --arg v8 "${TRAINING_TIME:-20:00}" \
-            --arg v9 "${SUMMARY_HOURS_BEFORE:-2}" \
-            --slurpfile existing /tmp/existing.json \
-            '[ {"name":"GOOGLE_SHEET_ID","value":$v1},
-               {"name":"GOOGLE_SERVICE_ACCOUNT_EMAIL","value":$v2},
-               {"name":"GOOGLE_PRIVATE_KEY","value":($v3 | rtrimstr("\n"))},
-               {"name":"GROUP_NAME","value":$v4},
-               {"name":"TRAINER_PHONE","value":$v5},
-               {"name":"POLL_CRON","value":$v6},
-               {"name":"TRAINING_DAY","value":$v7},
-               {"name":"TRAINING_TIME","value":$v8},
-               {"name":"SUMMARY_HOURS_BEFORE","value":$v9}
-            ] as $new | ($new | map(.name)) as $new_names |
-            [($existing[0] // [])[] | select(.name as $n | $new_names | index($n) | not)] + $new')
-          rm -f /tmp/gpk.txt /tmp/existing.json
-
-          # Redeploy stack
           STACK_FILE=$(cat docker-compose.yml)
-          echo "Redeploying stack with $(echo "$MERGED_ENV" | jq length) env vars..."
-          RESULT=$(curl -sf -X PUT \
+          curl -s -X PUT \
             -H "X-API-Key: $PORTAINER_API_TOKEN" \
             -H "Content-Type: application/json" \
             -d "{
-              \"StackFileContent\": $(echo "$STACK_FILE" | jq -Rs .),
-              \"Env\": $MERGED_ENV,
-              \"Prune\": true,
-              \"PullImage\": true
+              \"StackFileContent\": $(echo \"$STACK_FILE\" | jq -Rs .),
+              \"Env\": $CURRENT_ENV,
+              \"Prune\": true
             }" \
-            "$PORTAINER_URL/api/stacks/$PORTAINER_STACK_ID?endpointId=$ENDPOINT_ID" 2>&1) || {
-            echo "::error::Stack redeploy failed: $RESULT"
-            exit 1
-          }
+            "$PORTAINER_URL/api/stacks/$PORTAINER_STACK_ID?endpointId=$ENDPOINT_ID"
           echo "Deploy complete."
