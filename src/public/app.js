@@ -350,7 +350,7 @@ async function loadGroups() {
     } else if (!data.connected) {
       hint.textContent = 'Nog niet verbonden — scan eerst de QR.';
     } else {
-      hint.textContent = `Geen groepen gevonden (${data.totalChats || 0} chats gesynct). Probeer "Opnieuw koppelen".`;
+      hint.textContent = `Geen groepen gevonden (${data.totalChats || 0} groepen bekend bij WhatsApp). Probeer "Opnieuw koppelen".`;
     }
   } catch {
     hint.textContent = '';

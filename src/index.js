@@ -10,10 +10,7 @@ process.on('unhandledRejection', (err) => {
 
 process.on('uncaughtException', (err) => {
   console.error('[Process] Uncaught exception:', err.message || err);
-  // Alleen crashen bij echte fatale fouten, niet bij WhatsApp/Chromium issues
-  if (!err.message?.includes('browser') && !err.message?.includes('Chromium')) {
-    process.exit(1);
-  }
+  process.exit(1);
 });
 
 async function main() {
@@ -47,7 +44,7 @@ async function main() {
   });
 
   try {
-    whatsapp.init();
+    await whatsapp.init();
   } catch (err) {
     console.error('[Init] WhatsApp init fout:', err.message);
     console.log('[Init] Web interface draait door, WhatsApp niet beschikbaar');
