@@ -316,6 +316,41 @@ async function sendToTrainer() {
   }
 }
 
+// ── Instellingen ─────────────────────────────────────
+
+async function loadSettings() {
+  try {
+    const res = await fetch('/api/settings');
+    const s = await res.json();
+    document.getElementById('setting-group-name').value = s.groupName || '';
+    document.getElementById('setting-trainer-phone').value = s.trainerPhone || '';
+  } catch {
+    // stil falen — velden blijven leeg
+  }
+}
+
+async function saveSettings() {
+  const groupName = document.getElementById('setting-group-name').value.trim();
+  const trainerPhone = document.getElementById('setting-trainer-phone').value.trim();
+  try {
+    const res = await fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ groupName, trainerPhone }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      document.getElementById('setting-trainer-phone').value = data.settings.trainerPhone || '';
+      showToast('Instellingen opgeslagen', 'success');
+      fetchStatus();
+    } else {
+      showToast(data.error || 'Fout bij opslaan', 'error');
+    }
+  } catch {
+    showToast('Fout bij opslaan instellingen', 'error');
+  }
+}
+
 function showToast(message, type = 'success') {
   const toast = document.getElementById('toast');
   toast.textContent = message;
@@ -328,4 +363,5 @@ function showToast(message, type = 'success') {
 fetchStatus();
 loadNextTraining();
 loadNextMatch();
+loadSettings();
 pollInterval = setInterval(fetchStatus, 5000);

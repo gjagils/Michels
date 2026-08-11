@@ -3,6 +3,7 @@ const { Client, LocalAuth } = pkg;
 import QRCode from 'qrcode';
 import fs from 'fs';
 import path from 'path';
+import { getSetting } from './settings.js';
 
 const SESSION_PATH = '/data/whatsapp-session';
 
@@ -115,9 +116,9 @@ class WhatsAppManager {
   }
 
   async findGroup() {
-    const groupName = process.env.GROUP_NAME;
+    const groupName = getSetting('groupName');
     if (!groupName) {
-      console.warn('[WhatsApp] GROUP_NAME niet ingesteld');
+      console.warn('[WhatsApp] Groepsnaam niet ingesteld');
       return;
     }
 
@@ -133,6 +134,14 @@ class WhatsAppManager {
     }
   }
 
+  // Herlaad de groep-cache nadat de groepsnaam is gewijzigd via de web-UI
+  async reloadGroup() {
+    this.groupChat = null;
+    if (this.status === 'connected' && this.client) {
+      await this.findGroup();
+    }
+  }
+
   async sendToGroup(message) {
     if (!this.groupChat) {
       await this.findGroup();
@@ -145,9 +154,9 @@ class WhatsAppManager {
   }
 
   async sendToTrainer(message) {
-    const phone = process.env.TRAINER_PHONE;
+    const phone = getSetting('trainerPhone');
     if (!phone) {
-      throw new Error('TRAINER_PHONE niet ingesteld');
+      throw new Error('Trainer-telefoonnummer niet ingesteld');
     }
     const chatId = `${phone}@c.us`;
     await this.client.sendMessage(chatId, message);

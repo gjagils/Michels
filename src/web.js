@@ -4,6 +4,7 @@ import { dirname, join } from 'path';
 import whatsapp from './whatsapp.js';
 import sheets from './sheets.js';
 import scheduler from './scheduler.js';
+import { getSettings, updateSettings } from './settings.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -19,6 +20,24 @@ function createApp() {
       whatsapp: whatsapp.getStatus(),
       scheduler: scheduler.getState(),
     });
+  });
+
+  // --- Instellingen ---
+
+  app.get('/api/settings', (req, res) => {
+    res.json(getSettings());
+  });
+
+  app.post('/api/settings', async (req, res) => {
+    try {
+      const { groupName, trainerPhone } = req.body || {};
+      const settings = updateSettings({ groupName, trainerPhone });
+      // Groep-cache verversen zodat een nieuwe groepsnaam meteen actief is
+      await whatsapp.reloadGroup();
+      res.json({ ok: true, settings });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
   });
 
   // --- Leden ---

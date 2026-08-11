@@ -53,6 +53,17 @@
         </div>
 
         <div class="card">
+          <h2>Instellingen</h2>
+          <label class="setting-label" for="setting-group-name">WhatsApp groepsnaam</label>
+          <input id="setting-group-name" type="text" placeholder="bijv. Squash Training">
+          <label class="setting-label" for="setting-trainer-phone">Trainer telefoonnummer</label>
+          <input id="setting-trainer-phone" type="text" placeholder="bijv. 31612345678">
+          <div class="actions">
+            <button onclick="saveSettings()" class="btn btn-primary">Opslaan</button>
+          </div>
+        </div>
+
+        <div class="card">
           <h2>Actieve poll</h2>
           <div id="poll-status">Geen actieve poll</div>
           <div id="poll-responses"></div>

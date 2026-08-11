@@ -124,7 +124,7 @@ header h1 { font-size: 1.4rem; font-weight: 600; }
 .btn-secondary { background: var(--surface-hover); color: var(--text); border: 1px solid var(--border); }
 .btn-secondary:hover { background: var(--border); }
 
-textarea {
+textarea, input[type="text"] {
   width: 100%;
   background: var(--bg);
   border: 1px solid var(--border);
@@ -136,7 +136,14 @@ textarea {
   resize: vertical;
 }
 
-textarea:focus { outline: none; border-color: var(--primary); }
+textarea:focus, input[type="text"]:focus { outline: none; border-color: var(--primary); }
+
+.setting-label {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: 0.6rem 0 0.25rem;
+}
 
 #qr-container { text-align: center; padding: 1rem; }
 #qr-container img { max-width: 280px; border-radius: 12px; }
