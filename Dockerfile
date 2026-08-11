@@ -1,5 +1,9 @@
 FROM node:20-alpine
 
+# git is nodig omdat @whiskeysockets/baileys zijn libsignal-dependency
+# rechtstreeks van GitHub installeert (geen npm-registry package)
+RUN apk add --no-cache git
+
 WORKDIR /app
 
 COPY package*.json ./
