@@ -11,7 +11,13 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 function createApp() {
   const app = express();
   app.use(express.json());
-  app.use(express.static(join(__dirname, 'public')));
+  app.use(
+    express.static(join(__dirname, 'public'), {
+      etag: false,
+      lastModified: false,
+      setHeaders: (res) => res.set('Cache-Control', 'no-store'),
+    })
+  );
 
   // --- Status ---
 
