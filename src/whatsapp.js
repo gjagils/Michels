@@ -93,8 +93,9 @@ class WhatsAppManager {
       raw.message?.conversation ||
       raw.message?.extendedTextMessage?.text ||
       raw.message?.imageMessage?.caption ||
+      raw.message?.reactionMessage?.text || // emoji-reactie (tapback) op een bericht
       '';
-    if (!text) return null;
+    if (!text) return null; // ook leeg bij een verwijderde reactie
 
     const remoteJid = raw.key.remoteJid || '';
     const isGroup = remoteJid.endsWith('@g.us');
