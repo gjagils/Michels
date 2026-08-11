@@ -148,14 +148,34 @@ class WhatsAppManager {
 
   // Lijst van groepsnamen die de bot ziet — voor de groepskiezer in de web-UI
   async listGroups() {
-    if (this.status !== 'connected' || !this.client) return [];
+    if (this.status !== 'connected' || !this.client) {
+      return { groups: [], totalChats: 0, connected: false };
+    }
     try {
       const chats = await this.client.getChats();
-      return chats.filter((c) => c.isGroup).map((c) => c.name);
+      const groups = chats.filter((c) => c.isGroup).map((c) => c.name).filter(Boolean);
+      return { groups, totalChats: chats.length, connected: true };
     } catch (err) {
       console.error('[WhatsApp] Kon groepen niet ophalen:', err.message);
-      return [];
+      return { groups: [], totalChats: 0, connected: true, error: err.message };
     }
+  }
+
+  // Sessie volledig resetten en opnieuw koppelen (schone sync via nieuwe QR)
+  async resetSession() {
+    console.log('[WhatsApp] Sessie reset aangevraagd via web-UI');
+    try {
+      if (this.client) await this.client.destroy().catch(() => {});
+    } catch (err) {
+      console.error('[WhatsApp] Client afsluiten mislukt:', err.message);
+    }
+    clearSessionData();
+    this.client = null;
+    this.groupChat = null;
+    this.qrCode = null;
+    this.initAttempts = 0;
+    this.setStatus('disconnected');
+    this.init();
   }
 
   async sendToGroup(message) {

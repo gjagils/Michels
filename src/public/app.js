@@ -338,7 +338,8 @@ async function loadGroups() {
   const hint = document.getElementById('group-hint');
   try {
     const res = await fetch('/api/groups');
-    const groups = await res.json();
+    const data = await res.json();
+    const groups = data.groups || [];
     const list = document.getElementById('group-options');
     list.innerHTML = groups
       .map((g) => `<option value="${g.replace(/"/g, '&quot;')}">`)
@@ -346,11 +347,26 @@ async function loadGroups() {
     if (groups.length) {
       groupsLoaded = true;
       hint.textContent = `Gevonden groepen: ${groups.join(', ')}`;
+    } else if (!data.connected) {
+      hint.textContent = 'Nog niet verbonden — scan eerst de QR.';
     } else {
-      hint.textContent = 'Nog geen groepen gevonden — verbind eerst WhatsApp.';
+      hint.textContent = `Geen groepen gevonden (${data.totalChats || 0} chats gesynct). Probeer "Opnieuw koppelen".`;
     }
   } catch {
     hint.textContent = '';
+  }
+}
+
+async function resetWhatsapp() {
+  if (!confirm('De bot wordt losgekoppeld en je moet de QR opnieuw scannen. Doorgaan?')) return;
+  try {
+    const res = await fetch('/api/whatsapp/reset', { method: 'POST' });
+    const data = await res.json();
+    showToast(data.ok ? 'Sessie gereset — scan zo de nieuwe QR' : data.error || 'Fout', data.ok ? 'success' : 'error');
+    groupsLoaded = false;
+    fetchStatus();
+  } catch {
+    showToast('Fout bij resetten', 'error');
   }
 }
 

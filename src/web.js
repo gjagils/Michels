@@ -38,6 +38,15 @@ function createApp() {
     res.json(await whatsapp.listGroups());
   });
 
+  app.post('/api/whatsapp/reset', async (req, res) => {
+    try {
+      await whatsapp.resetSession();
+      res.json({ ok: true, message: 'Sessie gereset — scan de nieuwe QR' });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.post('/api/settings', async (req, res) => {
     try {
       const { groupName, trainerPhone } = req.body || {};
