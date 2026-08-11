@@ -106,7 +106,8 @@ function createApp() {
 
   app.post('/api/poll/training', async (req, res) => {
     try {
-      await scheduler.sendTrainingPoll();
+      const result = await scheduler.sendTrainingPoll();
+      if (result && result.ok === false) return res.status(500).json({ error: result.error });
       res.json({ ok: true, message: 'Training poll verstuurd' });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -115,7 +116,8 @@ function createApp() {
 
   app.post('/api/poll/reminder', async (req, res) => {
     try {
-      await scheduler.sendPollReminder();
+      const result = await scheduler.sendPollReminder();
+      if (result && result.ok === false) return res.status(500).json({ error: result.error });
       res.json({ ok: true, message: 'Herinnering verstuurd' });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -124,7 +126,8 @@ function createApp() {
 
   app.post('/api/poll/match', async (req, res) => {
     try {
-      await scheduler.sendMatchReminder();
+      const result = await scheduler.sendMatchReminder();
+      if (result && result.ok === false) return res.status(500).json({ error: result.error });
       res.json({ ok: true, message: 'Wedstrijd reminder verstuurd' });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -133,7 +136,8 @@ function createApp() {
 
   app.post('/api/summary/send', async (req, res) => {
     try {
-      await scheduler.sendSummary();
+      const result = await scheduler.sendSummary();
+      if (result && result.ok === false) return res.status(500).json({ error: result.error });
       res.json({ ok: true, message: 'Samenvatting verstuurd' });
     } catch (err) {
       res.status(500).json({ error: err.message });

@@ -124,8 +124,10 @@ class Scheduler {
       }
 
       console.log(`[Scheduler] Training poll verstuurd voor ${dateStr} (${trainerText})`);
+      return { ok: true };
     } catch (err) {
       console.error('[Scheduler] Fout bij training poll:', err.message);
+      return { ok: false, error: err.message };
     }
   }
 
@@ -134,7 +136,7 @@ class Scheduler {
   async sendPollReminder() {
     if (!this.pendingPoll) {
       console.log('[Scheduler] Geen actieve poll, herinnering overgeslagen');
-      return;
+      return { ok: false, error: 'Geen actieve poll — stuur eerst een poll' };
     }
 
     try {
@@ -151,8 +153,10 @@ class Scheduler {
 
       await whatsapp.sendToGroup(message);
       console.log('[Scheduler] Poll herinnering verstuurd');
+      return { ok: true };
     } catch (err) {
       console.error('[Scheduler] Fout bij herinnering:', err.message);
+      return { ok: false, error: err.message };
     }
   }
 
@@ -202,8 +206,10 @@ class Scheduler {
 
       await whatsapp.sendToGroup(message);
       console.log(`[Scheduler] Wedstrijd reminder verstuurd: ${match.opponent}`);
+      return { ok: true };
     } catch (err) {
       console.error('[Scheduler] Fout bij wedstrijd reminder:', err.message);
+      return { ok: false, error: err.message };
     }
   }
 
@@ -212,7 +218,7 @@ class Scheduler {
   async sendSummary() {
     if (!this.pendingPoll) {
       console.log('[Scheduler] Geen actieve poll, samenvatting overgeslagen');
-      return;
+      return { ok: false, error: 'Geen actieve poll — stuur eerst een poll' };
     }
 
     try {
@@ -252,8 +258,10 @@ class Scheduler {
 
       console.log('[Scheduler] Samenvatting verstuurd');
       this.pendingPoll = null;
+      return { ok: true };
     } catch (err) {
       console.error('[Scheduler] Fout bij samenvatting:', err.message);
+      return { ok: false, error: err.message };
     }
   }
 
