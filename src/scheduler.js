@@ -1,6 +1,7 @@
 import cron from 'node-cron';
 import whatsapp from './whatsapp.js';
 import sheets from './sheets.js';
+import { interpretResponse } from './interpret.js';
 
 class Scheduler {
   constructor() {
@@ -256,50 +257,19 @@ class Scheduler {
     }
   }
 
-  // ── Poll Vote Handling ──────────────────────────────
-
-  async handleVote(vote) {
-    if (!this.pendingPoll) return;
-
-    try {
-      const contact = await vote.voter;
-      const phone = contact.id?.user || '';
-      const selectedOptions = vote.selectedOptions?.map((o) => o.name) || [];
-
-      const isYes = selectedOptions.some((o) => o.includes('Ja'));
-      const isNo = selectedOptions.some((o) => o.includes('Nee'));
-
-      if (!isYes && !isNo) return;
-
-      // Zoek naam uit ledenlijst op basis van telefoonnummer
-      const member = await this.findMemberByPhone(phone);
-      const name = member?.name || contact.pushname || contact.name || phone;
-
-      this.pendingPoll.responses.set(member?.phone || phone, { name, attending: isYes });
-
-      try {
-        await sheets.updateAttendance(this.pendingPoll.date, name, isYes);
-      } catch (err) {
-        console.error('[Scheduler] Fout bij opslaan vote:', err.message);
-      }
-
-      console.log(`[Scheduler] Poll vote: ${name} (${phone}) → ${isYes ? 'Ja' : 'Nee'}`);
-    } catch (err) {
-      console.error('[Scheduler] Fout bij verwerken vote:', err.message);
-    }
-  }
-
   // ── Text Response Handling ─────────────────────────
 
   async handleResponse(msg) {
     if (!this.pendingPoll) return;
 
-    const text = msg.body.trim();
-    const isYes = text.includes('✅') || text.toLowerCase() === 'ja';
-    const isNo = text.includes('❌') || text.toLowerCase() === 'nee';
+    const text = (msg.body || '').trim();
+    if (!text) return;
 
-    if (!isYes && !isNo) return;
+    // LLM classificeert het vrije-tekst antwoord → ja / nee / onduidelijk
+    const verdict = await interpretResponse(text);
+    if (verdict === 'onduidelijk') return;
 
+    const isYes = verdict === 'ja';
     const phone = this.extractPhone(msg.from);
     const contact = await msg.getContact();
 
