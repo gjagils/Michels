@@ -138,7 +138,23 @@ class WhatsAppManager {
   async reloadGroup() {
     this.groupChat = null;
     if (this.status === 'connected' && this.client) {
-      await this.findGroup();
+      try {
+        await this.findGroup();
+      } catch (err) {
+        console.error('[WhatsApp] Groep herladen mislukt:', err.message);
+      }
+    }
+  }
+
+  // Lijst van groepsnamen die de bot ziet — voor de groepskiezer in de web-UI
+  async listGroups() {
+    if (this.status !== 'connected' || !this.client) return [];
+    try {
+      const chats = await this.client.getChats();
+      return chats.filter((c) => c.isGroup).map((c) => c.name);
+    } catch (err) {
+      console.error('[WhatsApp] Kon groepen niet ophalen:', err.message);
+      return [];
     }
   }
 

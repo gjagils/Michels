@@ -53,6 +53,9 @@ function updateWhatsAppStatus(wa) {
   }
 
   if (wa.group) badge.textContent += ` — ${wa.group}`;
+
+  // Zodra verbonden: groepenlijst ophalen voor de keuzelijst
+  if (wa.status === 'connected' && !groupsLoaded) loadGroups();
 }
 
 function updateScheduleInfo(sched) {
@@ -329,6 +332,28 @@ async function loadSettings() {
   }
 }
 
+let groupsLoaded = false;
+
+async function loadGroups() {
+  const hint = document.getElementById('group-hint');
+  try {
+    const res = await fetch('/api/groups');
+    const groups = await res.json();
+    const list = document.getElementById('group-options');
+    list.innerHTML = groups
+      .map((g) => `<option value="${g.replace(/"/g, '&quot;')}">`)
+      .join('');
+    if (groups.length) {
+      groupsLoaded = true;
+      hint.textContent = `Gevonden groepen: ${groups.join(', ')}`;
+    } else {
+      hint.textContent = 'Nog geen groepen gevonden — verbind eerst WhatsApp.';
+    }
+  } catch {
+    hint.textContent = '';
+  }
+}
+
 async function saveSettings() {
   const groupName = document.getElementById('setting-group-name').value.trim();
   const trainerPhone = document.getElementById('setting-trainer-phone').value.trim();
@@ -364,4 +389,5 @@ fetchStatus();
 loadNextTraining();
 loadNextMatch();
 loadSettings();
+loadGroups();
 pollInterval = setInterval(fetchStatus, 5000);

@@ -55,7 +55,9 @@
         <div class="card">
           <h2>Instellingen</h2>
           <label class="setting-label" for="setting-group-name">WhatsApp groepsnaam</label>
-          <input id="setting-group-name" type="text" placeholder="bijv. Squash Training">
+          <input id="setting-group-name" type="text" list="group-options" placeholder="Kies of typ de groepsnaam">
+          <datalist id="group-options"></datalist>
+          <div id="group-hint" class="setting-label"></div>
           <label class="setting-label" for="setting-trainer-phone">Trainer telefoonnummer</label>
           <input id="setting-trainer-phone" type="text" placeholder="bijv. 31612345678">
           <div class="actions">

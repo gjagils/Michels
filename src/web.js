@@ -28,12 +28,21 @@ function createApp() {
     res.json(getSettings());
   });
 
+  app.get('/api/groups', async (req, res) => {
+    res.json(await whatsapp.listGroups());
+  });
+
   app.post('/api/settings', async (req, res) => {
     try {
       const { groupName, trainerPhone } = req.body || {};
       const settings = updateSettings({ groupName, trainerPhone });
-      // Groep-cache verversen zodat een nieuwe groepsnaam meteen actief is
-      await whatsapp.reloadGroup();
+      // Groep-cache verversen zodat een nieuwe groepsnaam meteen actief is.
+      // Fout hierin mag het opslaan niet blokkeren.
+      try {
+        await whatsapp.reloadGroup();
+      } catch (e) {
+        console.error('[Web] Groep herladen na opslaan mislukt:', e.message);
+      }
       res.json({ ok: true, settings });
     } catch (err) {
       res.status(500).json({ error: err.message });
