@@ -3,17 +3,31 @@ let currentPollDate = null; // Voor betaalverzoeken per poll-datum
 
 // ── Tabs ─────────────────────────────────────────────
 
+function switchTab(tabName) {
+  document.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach((c) => c.classList.remove('active'));
+  const tab = document.querySelector(`[data-tab="${tabName}"]`);
+  if (tab) {
+    tab.classList.add('active');
+    document.getElementById(`tab-${tabName}`).classList.add('active');
+    localStorage.setItem('activeTab', tabName);
+
+    if (tabName === 'matches') loadMatches();
+    if (tabName === 'trainings') loadTrainings();
+    if (tabName === 'members') loadMembers();
+  }
+}
+
 document.querySelectorAll('.tab').forEach((tab) => {
   tab.addEventListener('click', () => {
-    document.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach((c) => c.classList.remove('active'));
-    tab.classList.add('active');
-    document.getElementById(`tab-${tab.dataset.tab}`).classList.add('active');
-
-    if (tab.dataset.tab === 'matches') loadMatches();
-    if (tab.dataset.tab === 'trainings') loadTrainings();
-    if (tab.dataset.tab === 'members') loadMembers();
+    switchTab(tab.dataset.tab);
   });
+});
+
+// Herstel actieve tab na page load
+window.addEventListener('load', () => {
+  const savedTab = localStorage.getItem('activeTab') || 'dashboard';
+  setTimeout(() => switchTab(savedTab), 100);
 });
 
 // ── Status ───────────────────────────────────────────
@@ -494,6 +508,7 @@ async function saveSettings() {
       // Auto restart als schema is gewijzigd
       if (data.scheduleChanged) {
         showToast('⏳ Instellingen opgeslagen - Server restart...', 'success');
+        localStorage.setItem('activeTab', 'settings');
         setTimeout(() => {
           fetch('/api/restart', { method: 'POST' }).catch(() => {});
           setTimeout(() => {
