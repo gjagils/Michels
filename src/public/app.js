@@ -394,6 +394,11 @@ async function loadSettings() {
     document.getElementById('setting-group-name').value = s.groupName || '';
     document.getElementById('setting-trainer-phone').value = s.trainerPhone || '';
     document.getElementById('setting-training-host').value = s.trainingHost || '';
+    document.getElementById('setting-training-cost').value = s.trainingCost || '50.00';
+    document.getElementById('setting-poll-time').value = s.pollTime || 'Maandag 18:00';
+    document.getElementById('setting-reminder-time').value = s.reminderTime || 'Dinsdag 09:00';
+    document.getElementById('setting-summary-time').value = s.summaryTime || 'Dinsdag 22:00';
+    document.getElementById('setting-payment-time').value = s.paymentTime || 'Woensdag 20:30';
   } catch {
     // stil falen — velden blijven leeg
   }
@@ -441,6 +446,11 @@ async function saveSettings() {
   const groupName = document.getElementById('setting-group-name').value.trim();
   const trainerPhone = document.getElementById('setting-trainer-phone').value.trim();
   const trainingHost = document.getElementById('setting-training-host').value.trim();
+  const trainingCost = document.getElementById('setting-training-cost').value.trim();
+  const pollTime = document.getElementById('setting-poll-time').value.trim();
+  const reminderTime = document.getElementById('setting-reminder-time').value.trim();
+  const summaryTime = document.getElementById('setting-summary-time').value.trim();
+  const paymentTime = document.getElementById('setting-payment-time').value.trim();
   const bunqAccountValue = document.getElementById('setting-bunq-account').value;
 
   let bunqAccountId, bunqAccountName;
@@ -453,7 +463,7 @@ async function saveSettings() {
   }
 
   try {
-    const body = { groupName, trainerPhone, trainingHost };
+    const body = { groupName, trainerPhone, trainingHost, trainingCost, pollTime, reminderTime, summaryTime, paymentTime };
     if (bunqAccountId) {
       body.bunqAccountId = bunqAccountId;
       body.bunqAccountName = bunqAccountName;
@@ -469,7 +479,12 @@ async function saveSettings() {
       document.getElementById('setting-group-name').value = data.settings.groupName || '';
       document.getElementById('setting-trainer-phone').value = data.settings.trainerPhone || '';
       document.getElementById('setting-training-host').value = data.settings.trainingHost || '';
-      showToast('Instellingen opgeslagen' + (bunqAccountName ? ` (rekening: ${bunqAccountName})` : ''), 'success');
+      document.getElementById('setting-training-cost').value = data.settings.trainingCost || '50.00';
+      document.getElementById('setting-poll-time').value = data.settings.pollTime || 'Maandag 18:00';
+      document.getElementById('setting-reminder-time').value = data.settings.reminderTime || 'Dinsdag 09:00';
+      document.getElementById('setting-summary-time').value = data.settings.summaryTime || 'Dinsdag 22:00';
+      document.getElementById('setting-payment-time').value = data.settings.paymentTime || 'Woensdag 20:30';
+      showToast('Instellingen opgeslagen! Server restart vereist voor schema wijzigingen.', 'success');
       fetchStatus();
     } else {
       showToast(data.error || 'Fout bij opslaan', 'error');
