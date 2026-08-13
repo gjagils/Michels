@@ -483,16 +483,11 @@ async function saveSettings() {
     });
     const data = await res.json();
     if (data.ok) {
-      console.log('[Settings] Saved, response:', { pollTime: data.settings.pollTime });
-      document.getElementById('setting-group-name').value = data.settings.groupName || '';
-      document.getElementById('setting-trainer-phone').value = data.settings.trainerPhone || '';
-      document.getElementById('setting-training-host').value = data.settings.trainingHost || '';
-      document.getElementById('setting-training-cost').value = data.settings.trainingCost || '50.00';
-      document.getElementById('setting-poll-time').value = data.settings.pollTime || 'Maandag 18:00';
-      document.getElementById('setting-reminder-time').value = data.settings.reminderTime || 'Dinsdag 09:00';
-      document.getElementById('setting-summary-time').value = data.settings.summaryTime || 'Dinsdag 22:00';
-      document.getElementById('setting-payment-time').value = data.settings.paymentTime || 'Woensdag 20:30';
-      console.log('[Settings] Form updated with:', { poll: document.getElementById('setting-poll-time').value });
+      console.log('[Settings] Saved, scheduleChanged:', data.scheduleChanged);
+
+      // Laad frisse settings direct van server (niet uit response)
+      await loadSettings();
+      console.log('[Settings] Form refreshed, poll now:', document.getElementById('setting-poll-time').value);
 
       // Auto restart als schema is gewijzigd
       if (data.scheduleChanged) {
