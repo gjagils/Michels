@@ -277,6 +277,20 @@ async function sendSummary() {
   }
 }
 
+async function sendPaymentRequest() {
+  try {
+    const res = await fetch('/api/payment/request', { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      showToast(`💸 Betaalverzoeken verstuurd! (${data.attendees} personen)`, 'success');
+    } else {
+      showToast(data.error || 'Fout bij betaalverzoeken', 'error');
+    }
+  } catch {
+    showToast('Fout bij versturen betaalverzoeken', 'error');
+  }
+}
+
 async function sendToGroup() {
   const msg = document.getElementById('custom-message').value.trim();
   if (!msg) return;
