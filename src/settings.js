@@ -92,27 +92,10 @@ export function updateSettings(patch = {}) {
   }
   cache = next;
   try {
+    // Schrijf ALLE huidige velden naar disk (niet alleen de gemuteerde)
     fs.writeFileSync(
       SETTINGS_PATH,
-      JSON.stringify(
-        {
-          groupName: next.groupName,
-          trainerPhone: next.trainerPhone,
-          trainingCost: next.trainingCost,
-          trainingHost: next.trainingHost,
-          bunqApiKey: next.bunqApiKey,
-          bunqUserId: next.bunqUserId,
-          bunqAccountId: next.bunqAccountId,
-          bunqAccountName: next.bunqAccountName,
-          bunqEnvironment: next.bunqEnvironment,
-          pollTime: next.pollTime,
-          reminderTime: next.reminderTime,
-          summaryTime: next.summaryTime,
-          paymentTime: next.paymentTime,
-        },
-        null,
-        2
-      )
+      JSON.stringify(next, null, 2)
     );
   } catch (err) {
     console.error('[Settings] Kon settings niet opslaan:', err.message);
