@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.116.0",
+    "@bunq-community/bunq-js-client": "^0.35.1",
     "@whiskeysockets/baileys": "6.7.24",
     "express": "^4.21.0",
     "googleapis": "^144.0.0",
