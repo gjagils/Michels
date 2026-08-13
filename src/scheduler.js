@@ -89,6 +89,10 @@ class Scheduler {
     this.jobs.payment = cron.schedule('0 9 * * 3', () => this.sendPaymentRequest(), tz);
     console.log('[Scheduler] Betaalverzoeken: woensdag 09:00');
 
+    // Woensdag avond: Tikkie versturen
+    this.jobs.tikkie = cron.schedule('0 21 * * 3', () => this.sendTikkie(), tz);
+    console.log('[Scheduler] Tikkie: woensdag 21:00');
+
     console.log('[Scheduler] Alle jobs gestart');
   }
 
@@ -317,6 +321,32 @@ class Scheduler {
     }
   }
 
+  // ── Woensdag avond: Tikkie versturen ──────────────────
+
+  async sendTikkie() {
+    try {
+      const tikkieUrl = getSetting('tikkieUrl');
+      if (!tikkieUrl) {
+        console.log('[Scheduler] Geen Tikkie URL ingesteld, overgeslagen');
+        return { ok: false, error: 'Geen Tikkie URL ingesteld (zie Instellingen)' };
+      }
+
+      const message =
+        `💰 *Betaling via Tikkie*\n\n` +
+        `Vergeten je bijdrage over te maken?\n\n` +
+        `💬 *Klik hier:*\n` +
+        `${tikkieUrl}\n\n` +
+        `Dank!`;
+
+      await whatsapp.sendToGroup(message);
+      console.log('[Scheduler] Tikkie verstuurd');
+      return { ok: true };
+    } catch (err) {
+      console.error('[Scheduler] Fout bij Tikkie:', err.message);
+      return { ok: false, error: err.message };
+    }
+  }
+
   // ── Training dag: Betaalverzoek versturen ─────────────
   // Leest de aanwezigheid uit Sheets, berekent per-persoon kosten,
   // maakt betaalverzoeken aan (bunq.me) en stuurt ze naar de groep.
@@ -458,6 +488,7 @@ class Scheduler {
         reminder: 'Dinsdag 09:00 — Herinnering + wedstrijd check',
         summary: 'Dinsdag 22:00 — Samenvatting + bericht naar trainer',
         payment: 'Woensdag 09:00 — Betaalverzoeken',
+        tikkie: 'Woensdag 21:00 — Tikkie herinnering',
       },
     };
   }
