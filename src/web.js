@@ -157,13 +157,11 @@ function createApp() {
         return res.status(400).json({ error: 'Geen monetaire accounts gevonden' });
       }
 
-      // Sla op in settings (eerste account als default)
+      // Sla op in settings (NIET apiKey en environment - die komen van env vars!)
       updateSettings({
-        bunqApiKey: apiKey,
         bunqUserId: user.id,
         bunqAccountId: accounts[0].id,
         bunqAccountName: accounts[0].name,
-        bunqEnvironment: environment || 'sandbox',
       });
 
       res.json({
