@@ -70,24 +70,64 @@ class Scheduler {
     }
   }
 
+  parseCronTime(timeStr) {
+    // Parse "Maandag 18:00" naar cron expression "0 18 * * 1"
+    const days = {
+      'maandag': 1, 'dinsdag': 2, 'woensdag': 3, 'donderdag': 4,
+      'vrijdag': 5, 'zaterdag': 6, 'zondag': 0
+    };
+
+    const parts = (timeStr || '').toLowerCase().trim().split(' ');
+    const dayName = parts[0];
+    const time = parts[1] || '00:00';
+
+    const dayNum = days[dayName];
+    if (dayNum === undefined) {
+      console.error(`[Scheduler] Ongeldig dag in "${timeStr}"`);
+      return null;
+    }
+
+    const [hour, minute] = time.split(':').map(Number);
+    return `${minute} ${hour} * * ${dayNum}`;
+  }
+
   start() {
     const tz = { timezone: 'Europe/Amsterdam' };
 
-    this.jobs.poll = cron.schedule('0 18 * * 1', () => this.sendTrainingPoll(), tz);
-    console.log('[Scheduler] Training poll: maandag 18:00');
+    // Lees times uit settings, fallback naar defaults
+    const pollTime = getSetting('pollTime') || 'Maandag 18:00';
+    const reminderTime = getSetting('reminderTime') || 'Dinsdag 09:00';
+    const summaryTime = getSetting('summaryTime') || 'Dinsdag 22:00';
+    const paymentTime = getSetting('paymentTime') || 'Woensdag 20:30';
 
-    this.jobs.reminder = cron.schedule('0 9 * * 2', () => {
-      this.sendPollReminder();
-      this.sendMatchReminder();
-    }, tz);
-    console.log('[Scheduler] Herinnering + wedstrijd: dinsdag 09:00');
+    // Parse en schedule
+    const pollCron = this.parseCronTime(pollTime);
+    const reminderCron = this.parseCronTime(reminderTime);
+    const summaryCron = this.parseCronTime(summaryTime);
+    const paymentCron = this.parseCronTime(paymentTime);
 
-    this.jobs.summary = cron.schedule('0 22 * * 2', () => this.sendSummary(), tz);
-    console.log('[Scheduler] Samenvatting: dinsdag 22:00');
+    if (pollCron) {
+      this.jobs.poll = cron.schedule(pollCron, () => this.sendTrainingPoll(), tz);
+      console.log(`[Scheduler] Training poll: ${pollTime}`);
+    }
 
-    // Woensdag avond: betaalverzoeken voor de training
-    this.jobs.payment = cron.schedule('30 20 * * 3', () => this.sendPaymentRequest(), tz);
-    console.log('[Scheduler] Betaalverzoeken: woensdag 20:30');
+    if (reminderCron) {
+      this.jobs.reminder = cron.schedule(reminderCron, () => {
+        this.sendPollReminder();
+        this.sendMatchReminder();
+      }, tz);
+      console.log(`[Scheduler] Herinnering + wedstrijd: ${reminderTime}`);
+    }
+
+    if (summaryCron) {
+      this.jobs.summary = cron.schedule(summaryCron, () => this.sendSummary(), tz);
+      console.log(`[Scheduler] Samenvatting: ${summaryTime}`);
+    }
+
+    if (paymentCron) {
+      this.jobs.payment = cron.schedule(paymentCron, () => this.sendPaymentRequest(), tz);
+      console.log(`[Scheduler] Betaalverzoeken: ${paymentTime}`);
+    }
 
     console.log('[Scheduler] Alle jobs gestart');
   }
