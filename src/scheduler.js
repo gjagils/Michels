@@ -456,7 +456,8 @@ class Scheduler {
       jobs: {
         poll: 'Maandag 18:00 — Training poll',
         reminder: 'Dinsdag 09:00 — Herinnering + wedstrijd check',
-        summary: 'Dinsdag 22:00 — Samenvatting',
+        summary: 'Dinsdag 22:00 — Samenvatting + bericht naar trainer',
+        payment: 'Woensdag 09:00 — Betaalverzoeken',
       },
     };
   }
