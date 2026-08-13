@@ -592,13 +592,15 @@ function showToast(message, type = 'success') {
 
 async function loadVersion() {
   try {
-    const res = await fetch('/api/version');
+    const res = await fetch('/api/version?t=' + Date.now(), {
+      headers: { 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' }
+    });
     const data = await res.json();
-    if (data.version) {
+    if (data.version && data.version !== 'unknown') {
       document.getElementById('version-display').textContent = `v${data.version}`;
     }
-  } catch {
-    // silent fail
+  } catch (err) {
+    console.error('[Version] Fout:', err.message);
   }
 }
 
