@@ -9,8 +9,13 @@
 <body>
   <div class="container">
     <header>
-      <h1>🏸 Squash Team Manager</h1>
-      <div id="whatsapp-status" class="status-badge disconnected">Verbinden...</div>
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 2rem;">
+        <h1>🏸 Squash Team Manager</h1>
+        <div style="text-align: right;">
+          <div id="version-display" style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">v0.01</div>
+          <div id="whatsapp-status" class="status-badge disconnected">Verbinden...</div>
+        </div>
+      </div>
     </header>
 
     <div id="qr-section" class="card hidden">

@@ -23,6 +23,18 @@ function createApp() {
 
   // --- Status ---
 
+  app.get('/api/version', (req, res) => {
+    try {
+      const versionFile = JSON.parse(require('fs').readFileSync(
+        require('path').join(require('path').dirname(require('url').fileURLToPath(import.meta.url)), '../version.json'),
+        'utf8'
+      ));
+      res.json(versionFile);
+    } catch {
+      res.json({ version: 'unknown', lastDeployed: null });
+    }
+  });
+
   app.get('/api/status', (req, res) => {
     res.json({
       whatsapp: whatsapp.getStatus(),

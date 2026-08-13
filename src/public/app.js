@@ -588,8 +588,23 @@ function showToast(message, type = 'success') {
   setTimeout(() => toast.classList.add('hidden'), 3000);
 }
 
+// ── Version ──────────────────────────────────────────
+
+async function loadVersion() {
+  try {
+    const res = await fetch('/api/version');
+    const data = await res.json();
+    if (data.version) {
+      document.getElementById('version-display').textContent = `v${data.version}`;
+    }
+  } catch {
+    // silent fail
+  }
+}
+
 // ── Init ─────────────────────────────────────────────
 
+loadVersion();
 fetchStatus();
 loadNextTraining();
 loadNextMatch();
