@@ -211,9 +211,14 @@ class WhatsAppManager {
     if (!phone) {
       throw new Error('Trainer-telefoonnummer niet ingesteld');
     }
+    await this.sendToPhone(phone, message);
+    console.log('[WhatsApp] Bericht naar trainer gestuurd');
+  }
+
+  // Stuur een DM naar een willekeurig telefoonnummer (alleen cijfers, met landcode)
+  async sendToPhone(phone, message) {
     const jid = `${phone}@s.whatsapp.net`;
     await this.sock.sendMessage(jid, { text: message });
-    console.log('[WhatsApp] Bericht naar trainer gestuurd');
   }
 
   getStatus() {

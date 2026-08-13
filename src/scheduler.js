@@ -1,7 +1,9 @@
 import cron from 'node-cron';
 import whatsapp from './whatsapp.js';
 import sheets from './sheets.js';
+import payments from './payments.js';
 import { interpretResponse } from './interpret.js';
+import { getSetting } from './settings.js';
 
 class Scheduler {
   constructor() {
@@ -57,6 +59,17 @@ class Scheduler {
     }
   }
 
+  // Zoek telefoonnummer bij naam (voor het versturen van Tikkie-DM's)
+  async findMemberByName(name) {
+    try {
+      const members = await sheets.getMembers();
+      const normalized = name.trim().toLowerCase();
+      return members.find((m) => m.name?.trim().toLowerCase() === normalized);
+    } catch {
+      return null;
+    }
+  }
+
   start() {
     const tz = { timezone: 'Europe/Amsterdam' };
 
@@ -71,6 +84,10 @@ class Scheduler {
 
     this.jobs.summary = cron.schedule('0 22 * * 2', () => this.sendSummary(), tz);
     console.log('[Scheduler] Samenvatting: dinsdag 22:00');
+
+    // Woensdag ochtend: betaalverzoeken voor de training
+    this.jobs.payment = cron.schedule('0 9 * * 3', () => this.sendPaymentRequest(), tz);
+    console.log('[Scheduler] Betaalverzoeken: woensdag 09:00');
 
     console.log('[Scheduler] Alle jobs gestart');
   }
@@ -261,6 +278,79 @@ class Scheduler {
       return { ok: true };
     } catch (err) {
       console.error('[Scheduler] Fout bij samenvatting:', err.message);
+      return { ok: false, error: err.message };
+    }
+  }
+
+  // ── Training dag: Betaalverzoek versturen ─────────────
+  // Leest de aanwezigheid uit Sheets, berekent per-persoon kosten,
+  // maakt betaalverzoeken aan (bunq.me) en stuurt ze naar de groep.
+
+  async sendPaymentRequest() {
+    try {
+      const costRaw = getSetting('trainingCost');
+      const cost = parseFloat(costRaw);
+      if (!Number.isFinite(cost) || cost <= 0) {
+        console.log('[Scheduler] Geen trainingskosten ingesteld, betaalverzoek overgeslagen');
+        return { ok: false, error: 'Geen trainingskosten ingesteld (zie Instellingen)' };
+      }
+
+      const today = new Date();
+      const sheetDate = this.formatSheetDate(today);
+      const dateStr = this.formatDisplayDate(today);
+
+      let attendance = [];
+      try {
+        attendance = await sheets.getAttendance(sheetDate);
+      } catch (err) {
+        return { ok: false, error: `Kon aanwezigheid niet ophalen: ${err.message}` };
+      }
+
+      const attendees = attendance.filter((a) => a.attending === 'Ja');
+      if (!attendees.length) {
+        console.log('[Scheduler] Geen aanwezigen gevonden, betaalverzoek overgeslagen');
+        return { ok: false, error: 'Geen aanwezigen gevonden voor vandaag — is de poll al beantwoord?' };
+      }
+
+      const perPerson = cost / attendees.length;
+      const amountCents = Math.round(perPerson * 100);
+      const description = `Squash training ${dateStr}`;
+
+      // Maak betaalverzoek aan via bunq API
+      const result = await payments.createPaymentRequest({
+        amountCents,
+        description,
+      });
+
+      let message;
+      if (result.ok && result.url) {
+        // Succesvol → stuur de betaallink naar de groep
+        message =
+          `💸 *Betaalopdracht training ${dateStr}*\n\n` +
+          `${attendees.length} aanwezigen × €${perPerson.toFixed(2)} = €${cost.toFixed(2)}\n\n` +
+          `💬 *Betaal hier:*\n` +
+          `${result.url}\n\n` +
+          `_Geldig tot: ${result.expiryDate || '~30 dagen'}_`;
+
+        await whatsapp.sendToGroup(message);
+        console.log(
+          `[Scheduler] Betaalverzoek verstuurd (${attendees.length} aanwezigen, €${perPerson.toFixed(2)} p.p.) — tab ID: ${result.tabId}`
+        );
+        return { ok: true, tabId: result.tabId, attendees: attendees.length };
+      } else {
+        // API niet beschikbaar → fallback naar manual
+        message =
+          `💸 *Kosten training ${dateStr}*\n\n` +
+          `${attendees.length} aanwezigen × €${perPerson.toFixed(2)} = €${cost.toFixed(2)}\n\n` +
+          `_Betaalverzoeken via API nog niet actief — graag onderling verrekenen._\n` +
+          `Fout: ${result.error}`;
+
+        await whatsapp.sendToGroup(message);
+        console.log(`[Scheduler] Betaalverzoek mislukt: ${result.error}`);
+        return { ok: false, error: result.error };
+      }
+    } catch (err) {
+      console.error('[Scheduler] Fout bij betaalverzoek:', err.message);
       return { ok: false, error: err.message };
     }
   }
