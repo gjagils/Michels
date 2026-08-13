@@ -66,6 +66,7 @@ function createApp() {
   app.post('/api/settings', async (req, res) => {
     try {
       const { groupName, trainerPhone, trainingHost, trainingCost, pollTime, reminderTime, summaryTime, paymentTime, bunqAccountId, bunqAccountName } = req.body || {};
+      console.log('[Web] POST /api/settings:', { pollTime, reminderTime, summaryTime, paymentTime });
       const settings = updateSettings({
         groupName,
         trainerPhone,
@@ -78,6 +79,7 @@ function createApp() {
         bunqAccountId,
         bunqAccountName,
       });
+      console.log('[Web] Settings opgeslagen, nu:', { pollTime: settings.pollTime });
       // Groep-cache verversen zodat een nieuwe groepsnaam meteen actief is.
       // Fout hierin mag het opslaan niet blokkeren.
       try {

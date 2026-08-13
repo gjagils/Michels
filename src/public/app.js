@@ -393,6 +393,7 @@ async function loadSettings() {
       headers: { 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' }
     });
     const s = await res.json();
+    console.log('[Settings] Loaded from API:', { pollTime: s.pollTime });
     document.getElementById('setting-group-name').value = s.groupName || '';
     document.getElementById('setting-trainer-phone').value = s.trainerPhone || '';
     document.getElementById('setting-bunq-environment').value = s.bunqEnvironment || 'sandbox';
@@ -402,6 +403,7 @@ async function loadSettings() {
     document.getElementById('setting-reminder-time').value = s.reminderTime || 'Dinsdag 09:00';
     document.getElementById('setting-summary-time').value = s.summaryTime || 'Dinsdag 22:00';
     document.getElementById('setting-payment-time').value = s.paymentTime || 'Woensdag 20:30';
+    console.log('[Settings] Form now shows:', { poll: document.getElementById('setting-poll-time').value });
   } catch (err) {
     console.error('[Settings] Fout bij laden:', err.message);
   }
@@ -481,6 +483,7 @@ async function saveSettings() {
     });
     const data = await res.json();
     if (data.ok) {
+      console.log('[Settings] Saved, response:', { pollTime: data.settings.pollTime });
       document.getElementById('setting-group-name').value = data.settings.groupName || '';
       document.getElementById('setting-trainer-phone').value = data.settings.trainerPhone || '';
       document.getElementById('setting-training-host').value = data.settings.trainingHost || '';
@@ -489,6 +492,7 @@ async function saveSettings() {
       document.getElementById('setting-reminder-time').value = data.settings.reminderTime || 'Dinsdag 09:00';
       document.getElementById('setting-summary-time').value = data.settings.summaryTime || 'Dinsdag 22:00';
       document.getElementById('setting-payment-time').value = data.settings.paymentTime || 'Woensdag 20:30';
+      console.log('[Settings] Form updated with:', { poll: document.getElementById('setting-poll-time').value });
 
       // Auto restart als schema is gewijzigd
       if (data.scheduleChanged) {
