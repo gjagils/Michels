@@ -485,8 +485,18 @@ async function saveSettings() {
       document.getElementById('setting-reminder-time').value = data.settings.reminderTime || 'Dinsdag 09:00';
       document.getElementById('setting-summary-time').value = data.settings.summaryTime || 'Dinsdag 22:00';
       document.getElementById('setting-payment-time').value = data.settings.paymentTime || 'Woensdag 20:30';
-      showToast('Instellingen opgeslagen! Server restart vereist voor schema wijzigingen.', 'success');
-      fetchStatus();
+
+      // Auto restart als schema is gewijzigd
+      if (data.scheduleChanged) {
+        showToast('⏳ Instellingen opgeslagen - Server restart...', 'success');
+        setTimeout(() => {
+          fetch('/api/restart', { method: 'POST' }).catch(() => {});
+          setTimeout(() => location.reload(), 2000);
+        }, 500);
+      } else {
+        showToast('Instellingen opgeslagen!', 'success');
+        fetchStatus();
+      }
     } else {
       showToast(data.error || 'Fout bij opslaan', 'error');
     }

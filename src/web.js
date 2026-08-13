@@ -71,10 +71,24 @@ function createApp() {
       } catch (e) {
         console.error('[Web] Groep herladen na opslaan mislukt:', e.message);
       }
-      res.json({ ok: true, settings });
+
+      // Check of schema times zijn gewijzigd - dan moet server restart
+      const hasScheduleChange = patch.pollTime || patch.reminderTime || patch.summaryTime || patch.paymentTime;
+
+      res.json({ ok: true, settings, scheduleChanged: hasScheduleChange });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
+  });
+
+  // --- Server restart ---
+
+  app.post('/api/restart', (req, res) => {
+    res.json({ ok: true, message: 'Server restarting...' });
+    console.log('[Web] Server restart geïnitieerd');
+    setTimeout(() => {
+      process.exit(0);
+    }, 500);
   });
 
   // --- bunq API Instellingen ---
