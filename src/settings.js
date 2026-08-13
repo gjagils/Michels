@@ -66,6 +66,24 @@ export function updateSettings(patch = {}) {
   if (typeof patch.bunqEnvironment === 'string') {
     next.bunqEnvironment = ['sandbox', 'production'].includes(patch.bunqEnvironment) ? patch.bunqEnvironment : 'sandbox';
   }
+  if (typeof patch.trainingHost === 'string') {
+    next.trainingHost = patch.trainingHost.trim();
+  }
+  if (typeof patch.bunqAccountName === 'string') {
+    next.bunqAccountName = patch.bunqAccountName.trim();
+  }
+  if (typeof patch.pollTime === 'string') {
+    next.pollTime = patch.pollTime.trim();
+  }
+  if (typeof patch.reminderTime === 'string') {
+    next.reminderTime = patch.reminderTime.trim();
+  }
+  if (typeof patch.summaryTime === 'string') {
+    next.summaryTime = patch.summaryTime.trim();
+  }
+  if (typeof patch.paymentTime === 'string') {
+    next.paymentTime = patch.paymentTime.trim();
+  }
   cache = next;
   try {
     fs.writeFileSync(
@@ -75,10 +93,16 @@ export function updateSettings(patch = {}) {
           groupName: next.groupName,
           trainerPhone: next.trainerPhone,
           trainingCost: next.trainingCost,
+          trainingHost: next.trainingHost,
           bunqApiKey: next.bunqApiKey,
           bunqUserId: next.bunqUserId,
           bunqAccountId: next.bunqAccountId,
+          bunqAccountName: next.bunqAccountName,
           bunqEnvironment: next.bunqEnvironment,
+          pollTime: next.pollTime,
+          reminderTime: next.reminderTime,
+          summaryTime: next.summaryTime,
+          paymentTime: next.paymentTime,
         },
         null,
         2
