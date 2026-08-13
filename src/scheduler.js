@@ -343,6 +343,9 @@ class Scheduler {
 
       const sheetDate = this.formatSheetDate(targetDate);
       const dateStr = this.formatDisplayDate(targetDate);
+      const trainingHost = getSetting('trainingHost') || 'Training';
+      const day = targetDate.getDate();
+      const month = targetDate.getMonth() + 1;
 
       let attendance = [];
       try {
@@ -359,7 +362,7 @@ class Scheduler {
 
       const perPerson = cost / attendees.length;
       const amountCents = Math.round(perPerson * 100);
-      const description = `Squash training ${dateStr}`;
+      const description = `Training ${trainingHost} ${day}/${month}`;
 
       // Maak betaalverzoek aan via bunq API
       const result = await payments.createPaymentRequest({

@@ -393,6 +393,7 @@ async function loadSettings() {
     const s = await res.json();
     document.getElementById('setting-group-name').value = s.groupName || '';
     document.getElementById('setting-trainer-phone').value = s.trainerPhone || '';
+    document.getElementById('setting-training-host').value = s.trainingHost || '';
   } catch {
     // stil falen — velden blijven leeg
   }
@@ -439,6 +440,7 @@ async function resetWhatsapp() {
 async function saveSettings() {
   const groupName = document.getElementById('setting-group-name').value.trim();
   const trainerPhone = document.getElementById('setting-trainer-phone').value.trim();
+  const trainingHost = document.getElementById('setting-training-host').value.trim();
   const bunqAccountValue = document.getElementById('setting-bunq-account').value;
 
   let bunqAccountId, bunqAccountName;
@@ -451,7 +453,7 @@ async function saveSettings() {
   }
 
   try {
-    const body = { groupName, trainerPhone };
+    const body = { groupName, trainerPhone, trainingHost };
     if (bunqAccountId) {
       body.bunqAccountId = bunqAccountId;
       body.bunqAccountName = bunqAccountName;
@@ -466,6 +468,7 @@ async function saveSettings() {
     if (data.ok) {
       document.getElementById('setting-group-name').value = data.settings.groupName || '';
       document.getElementById('setting-trainer-phone').value = data.settings.trainerPhone || '';
+      document.getElementById('setting-training-host').value = data.settings.trainingHost || '';
       showToast('Instellingen opgeslagen' + (bunqAccountName ? ` (rekening: ${bunqAccountName})` : ''), 'success');
       fetchStatus();
     } else {

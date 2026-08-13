@@ -50,14 +50,16 @@ function createApp() {
 
   app.post('/api/settings', async (req, res) => {
     try {
-      const { groupName, trainerPhone, trainingCost, bunqApiKey, bunqUserId, bunqAccountId, bunqEnvironment } = req.body || {};
+      const { groupName, trainerPhone, trainingHost, trainingCost, bunqApiKey, bunqUserId, bunqAccountId, bunqAccountName, bunqEnvironment } = req.body || {};
       const settings = updateSettings({
         groupName,
         trainerPhone,
+        trainingHost,
         trainingCost,
         bunqApiKey,
         bunqUserId,
         bunqAccountId,
+        bunqAccountName,
         bunqEnvironment,
       });
       // Groep-cache verversen zodat een nieuwe groepsnaam meteen actief is.
