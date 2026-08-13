@@ -85,9 +85,9 @@ class Scheduler {
     this.jobs.summary = cron.schedule('0 22 * * 2', () => this.sendSummary(), tz);
     console.log('[Scheduler] Samenvatting: dinsdag 22:00');
 
-    // Woensdag ochtend: betaalverzoeken voor de training
-    this.jobs.payment = cron.schedule('0 9 * * 3', () => this.sendPaymentRequest(), tz);
-    console.log('[Scheduler] Betaalverzoeken: woensdag 09:00');
+    // Woensdag avond: betaalverzoeken voor de training
+    this.jobs.payment = cron.schedule('30 20 * * 3', () => this.sendPaymentRequest(), tz);
+    console.log('[Scheduler] Betaalverzoeken: woensdag 20:30');
 
     console.log('[Scheduler] Alle jobs gestart');
   }
@@ -457,7 +457,7 @@ class Scheduler {
         poll: 'Maandag 18:00 — Training poll',
         reminder: 'Dinsdag 09:00 — Herinnering + wedstrijd check',
         summary: 'Dinsdag 22:00 — Samenvatting + bericht naar trainer',
-        payment: 'Woensdag 09:00 — Betaalverzoeken',
+        payment: 'Woensdag 20:30 — Betaalverzoeken',
       },
     };
   }
