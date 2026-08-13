@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import whatsapp from './whatsapp.js';
 import sheets from './sheets.js';
 import scheduler from './scheduler.js';
+import payments from './payments.js';
 import { getSettings, getSetting, updateSettings } from './settings.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -80,68 +81,33 @@ function createApp() {
 
   app.post('/api/bunq/discover', async (req, res) => {
     try {
-      const apiKey = getSetting('bunqApiKey');
-      const environment = getSetting('bunqEnvironment') || 'sandbox';
-
-      if (!apiKey) {
-        return res.status(401).json({ error: 'BUNQ_API_KEY niet ingesteld in environment' });
+      // Hergebruik payments.js die al de juiste auth flow + credentials heeft
+      const initialized = await payments.ensureInitialized();
+      if (!initialized) {
+        return res.status(401).json({ error: 'bunq initialization failed - controleer API key en environment' });
       }
 
-      // Probeer met deze API key de user ID en account ID op te halen
-      const baseUrl = environment === 'production'
+      // payments.js is nu initialized met userId en sessionToken
+      // Fetch accounts met dezelfde credentials
+      const baseUrl = getSetting('bunqEnvironment') === 'production'
         ? 'https://api.bunq.com/v1'
         : 'https://public-api.sandbox.bunq.com/v1';
 
-      const requestId = uuidv4();
-      const userRes = await fetch(`${baseUrl}/user`, {
-        method: 'GET',
-        headers: {
-          'X-Bunq-Client-Request-Id': requestId,
-          'X-Bunq-Client-Authentication': `Bearer ${apiKey}`,
-          'Cache-Control': 'no-cache',
-          'User-Agent': 'SquashBot/1.0',
-        },
-      });
-
-      if (!userRes.ok) {
-        const errorText = await userRes.text();
-        let errorMsg = `bunq error ${userRes.status}`;
-
-        if (userRes.status === 403) {
-          errorMsg = '403: Onvoldoende rechten - controleer API key en environment';
-        } else if (userRes.status === 401) {
-          errorMsg = '401: API key ongeldig of verlopen';
+      const accountRes = await fetch(
+        `${baseUrl}/user/${payments.userId}/monetary-account`,
+        {
+          method: 'GET',
+          headers: {
+            'X-Bunq-Client-Request-Id': uuidv4(),
+            'X-Bunq-Client-Authentication': payments.sessionToken,
+            'Cache-Control': 'no-cache',
+            'User-Agent': 'SquashBot/1.0',
+          },
         }
-
-        return res.status(userRes.status).json({
-          error: errorMsg,
-          details: errorText.substring(0, 200),
-        });
-      }
-
-      const userData = await userRes.json();
-      const user = userData.Response?.[0]?.User || userData.Response?.[0]?.UserPerson;
-
-      if (!user || !user.id) {
-        return res.status(400).json({
-          error: 'User ID niet gevonden in API response',
-          response: userData,
-        });
-      }
-
-      // Nu accounts ophalen
-      const accountRes = await fetch(`${baseUrl}/user/${user.id}/monetary-account`, {
-        method: 'GET',
-        headers: {
-          'X-Bunq-Client-Request-Id': uuidv4(),
-          'X-Bunq-Client-Authentication': `Bearer ${apiKey}`,
-          'Cache-Control': 'no-cache',
-          'User-Agent': 'SquashBot/1.0',
-        },
-      });
+      );
 
       if (!accountRes.ok) {
-        return res.status(400).json({ error: `Kon accounts niet ophalen: ${accountRes.status}` });
+        return res.status(accountRes.status).json({ error: `Kon accounts niet ophalen: ${accountRes.status}` });
       }
 
       const accountData = await accountRes.json();
@@ -149,7 +115,6 @@ function createApp() {
         .map(a => ({
           id: a.MonetaryAccountBank?.id || a.MonetaryAccount?.id,
           name: a.MonetaryAccountBank?.description || a.MonetaryAccount?.description || 'Onbekend',
-          type: a.MonetaryAccountBank ? 'Bank' : 'Account',
         }))
         .filter(a => a.id);
 
@@ -157,23 +122,23 @@ function createApp() {
         return res.status(400).json({ error: 'Geen monetaire accounts gevonden' });
       }
 
-      // Sla op in settings (NIET apiKey en environment - die komen van env vars!)
+      // Sla op in settings
       updateSettings({
-        bunqUserId: user.id,
+        bunqUserId: payments.userId,
         bunqAccountId: accounts[0].id,
         bunqAccountName: accounts[0].name,
       });
 
       res.json({
         ok: true,
-        userId: user.id,
-        accounts, // Toon alle accounts
+        userId: payments.userId,
+        accounts,
         selectedAccount: accounts[0],
         message: `${accounts.length} rekening(en) gevonden. ${accounts[0].name} geselecteerd als default.`,
       });
     } catch (err) {
-      console.error('[bunq discover]:', err);
-      res.status(500).json({ error: err.message });
+      console.error('[bunq discover]:', err.message);
+      res.status(500).json({ error: `Discover failed: ${err.message}` });
     }
   });
 
