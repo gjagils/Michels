@@ -50,7 +50,7 @@ function createApp() {
 
   app.post('/api/settings', async (req, res) => {
     try {
-      const { groupName, trainerPhone, trainingHost, trainingCost, pollTime, reminderTime, summaryTime, paymentTime, bunqApiKey, bunqUserId, bunqAccountId, bunqAccountName, bunqEnvironment } = req.body || {};
+      const { groupName, trainerPhone, trainingHost, trainingCost, pollTime, reminderTime, summaryTime, paymentTime, bunqApiKey, bunqEnvironment, bunqAccountId, bunqAccountName } = req.body || {};
       const settings = updateSettings({
         groupName,
         trainerPhone,
@@ -61,10 +61,9 @@ function createApp() {
         summaryTime,
         paymentTime,
         bunqApiKey,
-        bunqUserId,
+        bunqEnvironment,
         bunqAccountId,
         bunqAccountName,
-        bunqEnvironment,
       });
       // Groep-cache verversen zodat een nieuwe groepsnaam meteen actief is.
       // Fout hierin mag het opslaan niet blokkeren.

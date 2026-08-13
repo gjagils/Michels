@@ -393,6 +393,8 @@ async function loadSettings() {
     const s = await res.json();
     document.getElementById('setting-group-name').value = s.groupName || '';
     document.getElementById('setting-trainer-phone').value = s.trainerPhone || '';
+    document.getElementById('setting-bunq-api-key').value = s.bunqApiKey || '';
+    document.getElementById('setting-bunq-environment').value = s.bunqEnvironment || 'sandbox';
     document.getElementById('setting-training-host').value = s.trainingHost || '';
     document.getElementById('setting-training-cost').value = s.trainingCost || '50.00';
     document.getElementById('setting-poll-time').value = s.pollTime || 'Maandag 18:00';
@@ -445,6 +447,8 @@ async function resetWhatsapp() {
 async function saveSettings() {
   const groupName = document.getElementById('setting-group-name').value.trim();
   const trainerPhone = document.getElementById('setting-trainer-phone').value.trim();
+  const bunqApiKey = document.getElementById('setting-bunq-api-key').value.trim();
+  const bunqEnvironment = document.getElementById('setting-bunq-environment').value;
   const trainingHost = document.getElementById('setting-training-host').value.trim();
   const trainingCost = document.getElementById('setting-training-cost').value.trim();
   const pollTime = document.getElementById('setting-poll-time').value.trim();
@@ -463,7 +467,7 @@ async function saveSettings() {
   }
 
   try {
-    const body = { groupName, trainerPhone, trainingHost, trainingCost, pollTime, reminderTime, summaryTime, paymentTime };
+    const body = { groupName, trainerPhone, bunqApiKey, bunqEnvironment, trainingHost, trainingCost, pollTime, reminderTime, summaryTime, paymentTime };
     if (bunqAccountId) {
       body.bunqAccountId = bunqAccountId;
       body.bunqAccountName = bunqAccountName;
@@ -478,6 +482,8 @@ async function saveSettings() {
     if (data.ok) {
       document.getElementById('setting-group-name').value = data.settings.groupName || '';
       document.getElementById('setting-trainer-phone').value = data.settings.trainerPhone || '';
+      document.getElementById('setting-bunq-api-key').value = data.settings.bunqApiKey || '';
+      document.getElementById('setting-bunq-environment').value = data.settings.bunqEnvironment || 'sandbox';
       document.getElementById('setting-training-host').value = data.settings.trainingHost || '';
       document.getElementById('setting-training-cost').value = data.settings.trainingCost || '50.00';
       document.getElementById('setting-poll-time').value = data.settings.pollTime || 'Maandag 18:00';
@@ -491,6 +497,51 @@ async function saveSettings() {
     }
   } catch {
     showToast('Fout bij opslaan instellingen', 'error');
+  }
+}
+
+async function discoverBunqAccounts() {
+  const apiKey = document.getElementById('setting-bunq-api-key').value.trim();
+  const environment = document.getElementById('setting-bunq-environment').value;
+
+  if (!apiKey) {
+    showToast('Vul eerst je bunq API key in', 'error');
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/bunq/discover', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ apiKey, environment }),
+    });
+
+    const data = await res.json();
+    if (data.ok) {
+      // Vul account dropdown in met alle accounts
+      const select = document.getElementById('setting-bunq-account');
+      select.innerHTML = '<option value="">— Selecteer rekening —</option>';
+
+      if (data.accounts && data.accounts.length) {
+        data.accounts.forEach(acc => {
+          const option = document.createElement('option');
+          option.value = JSON.stringify({ id: acc.id, name: acc.name });
+          option.textContent = acc.name;
+          select.appendChild(option);
+        });
+
+        // Select de eerste als default
+        if (data.accounts.length > 0) {
+          select.value = JSON.stringify({ id: data.accounts[0].id, name: data.accounts[0].name });
+        }
+      }
+
+      showToast(`✓ ${data.accounts?.length || 0} rekening(en) geladen! Selecteer de gewenste rekening en klik Opslaan.`, 'success');
+    } else {
+      showToast(`Fout: ${data.error}`, 'error');
+    }
+  } catch (err) {
+    showToast(`Fout: ${err.message}`, 'error');
   }
 }
 

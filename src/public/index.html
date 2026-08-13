@@ -115,6 +115,17 @@
 
         <div class="card">
           <h2>Betaalverzoeken (bunq)</h2>
+          <label class="setting-label" for="setting-bunq-api-key">bunq API key</label>
+          <input id="setting-bunq-api-key" type="password" placeholder="Plak je API key uit bunq app">
+          <label class="setting-label" for="setting-bunq-environment">Omgeving</label>
+          <select id="setting-bunq-environment" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 4px;">
+            <option value="sandbox">Sandbox (test)</option>
+            <option value="production">Production (echt geld)</option>
+          </select>
+          <div class="actions">
+            <button onclick="discoverBunqAccounts()" class="btn btn-secondary">🔍 Discover (laad gebruiker & rekeningen)</button>
+          </div>
+          <hr style="margin: 1rem 0; border: none; border-top: 1px solid var(--border);">
           <label class="setting-label" for="setting-training-host">Training host naam</label>
           <input id="setting-training-host" type="text" placeholder="bijv. Marijn">
           <label class="setting-label" for="setting-bunq-account">Rekening</label>
