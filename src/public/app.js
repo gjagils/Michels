@@ -486,15 +486,20 @@ async function saveSettings() {
       console.log('[Settings] Saved, scheduleChanged:', data.scheduleChanged);
 
       // Laad frisse settings direct van server (niet uit response)
+      console.log('[Settings] Laden van server...');
       await loadSettings();
-      console.log('[Settings] Form refreshed, poll now:', document.getElementById('setting-poll-time').value);
+      const pollValue = document.getElementById('setting-poll-time').value;
+      console.log('[Settings] Form refreshed, poll now:', pollValue);
 
       // Auto restart als schema is gewijzigd
       if (data.scheduleChanged) {
         showToast('⏳ Instellingen opgeslagen - Server restart...', 'success');
         setTimeout(() => {
           fetch('/api/restart', { method: 'POST' }).catch(() => {});
-          setTimeout(() => location.reload(), 2000);
+          setTimeout(() => {
+            console.log('[Settings] Wacht totdat server weer online is...');
+            location.reload();
+          }, 4000);
         }, 500);
       } else {
         showToast('Instellingen opgeslagen!', 'success');
