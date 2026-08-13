@@ -389,7 +389,9 @@ async function sendToTrainer() {
 
 async function loadSettings() {
   try {
-    const res = await fetch('/api/settings');
+    const res = await fetch('/api/settings?t=' + Date.now(), {
+      headers: { 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' }
+    });
     const s = await res.json();
     document.getElementById('setting-group-name').value = s.groupName || '';
     document.getElementById('setting-trainer-phone').value = s.trainerPhone || '';
@@ -400,8 +402,8 @@ async function loadSettings() {
     document.getElementById('setting-reminder-time').value = s.reminderTime || 'Dinsdag 09:00';
     document.getElementById('setting-summary-time').value = s.summaryTime || 'Dinsdag 22:00';
     document.getElementById('setting-payment-time').value = s.paymentTime || 'Woensdag 20:30';
-  } catch {
-    // stil falen — velden blijven leeg
+  } catch (err) {
+    console.error('[Settings] Fout bij laden:', err.message);
   }
 }
 
@@ -410,7 +412,9 @@ let groupsLoaded = false;
 async function loadGroups() {
   const hint = document.getElementById('group-hint');
   try {
-    const res = await fetch('/api/groups');
+    const res = await fetch('/api/groups?t=' + Date.now(), {
+      headers: { 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' }
+    });
     const data = await res.json();
     const groups = data.groups || [];
     const list = document.getElementById('group-options');
@@ -551,9 +555,9 @@ async function discoverBunqAccounts() {
 
 async function loadBunqAccounts() {
   try {
-    const res = await fetch('/api/bunq/accounts', {
+    const res = await fetch('/api/bunq/accounts?t=' + Date.now(), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' },
       body: JSON.stringify({}),
     });
 
