@@ -272,7 +272,9 @@ function createApp() {
 
   app.post('/api/payment/request', async (req, res) => {
     try {
-      const result = await scheduler.sendPaymentRequest();
+      // Optioneel: ?date=DD-MM-YYYY voor testen met andere datums
+      const customDate = req.query.date;
+      const result = await scheduler.sendPaymentRequest(customDate);
       if (result && result.ok === false) return res.status(500).json({ error: result.error });
       res.json({ ok: true, message: 'Betaalverzoeken verstuurd', ...result });
     } catch (err) {

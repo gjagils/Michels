@@ -285,8 +285,9 @@ class Scheduler {
   // ── Training dag: Betaalverzoek versturen ─────────────
   // Leest de aanwezigheid uit Sheets, berekent per-persoon kosten,
   // maakt betaalverzoeken aan (bunq.me) en stuurt ze naar de groep.
+  // Optioneel: kan voor een specifieke datum gebruikt worden (handig voor testen).
 
-  async sendPaymentRequest() {
+  async sendPaymentRequest(customDate = null) {
     try {
       const costRaw = getSetting('trainingCost');
       const cost = parseFloat(costRaw);
@@ -295,9 +296,18 @@ class Scheduler {
         return { ok: false, error: 'Geen trainingskosten ingesteld (zie Instellingen)' };
       }
 
-      const today = new Date();
-      const sheetDate = this.formatSheetDate(today);
-      const dateStr = this.formatDisplayDate(today);
+      // Gebruik gegeven datum of vandaag
+      let targetDate;
+      if (customDate) {
+        // Parse van format DD-MM-YYYY
+        const [day, month, year] = customDate.split('-').map(Number);
+        targetDate = new Date(year, month - 1, day);
+      } else {
+        targetDate = new Date();
+      }
+
+      const sheetDate = this.formatSheetDate(targetDate);
+      const dateStr = this.formatDisplayDate(targetDate);
 
       let attendance = [];
       try {

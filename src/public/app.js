@@ -1,4 +1,5 @@
 let pollInterval;
+let currentPollDate = null; // Voor betaalverzoeken per poll-datum
 
 // ── Tabs ─────────────────────────────────────────────
 
@@ -77,6 +78,10 @@ function updatePoll(sched) {
     const count = Object.keys(poll.responses).length;
     const attending = Object.values(poll.responses).filter(a => a).length;
     const trainer = poll.withTrainer ? 'met trainer' : 'zonder trainer';
+
+    // Sla de poll-datum op voor betaalverzoeken
+    currentPollDate = poll.sheetDate || poll.date;
+
     pollEl.textContent = `Poll actief: ${poll.displayDate} (${trainer}) — ${count} reactie(s), ${attending} komen`;
 
     let html = '';
@@ -102,6 +107,7 @@ function updatePoll(sched) {
   } else {
     pollEl.textContent = 'Geen actieve poll';
     responsesEl.innerHTML = '';
+    currentPollDate = null;
   }
 }
 
@@ -304,7 +310,12 @@ async function sendPaymentRequest() {
 
 async function sendPaymentRequestToPollAttendees() {
   try {
-    const res = await fetch('/api/payment/request', { method: 'POST' });
+    // Stuur betaalverzoeken voor de poll-datum (niet vandaag)
+    const url = currentPollDate
+      ? `/api/payment/request?date=${currentPollDate}`
+      : '/api/payment/request';
+
+    const res = await fetch(url, { method: 'POST' });
     const data = await res.json();
     if (data.ok) {
       showToast(`💸 Betaalverzoeken verstuurd! (${data.attendees} personen)`, 'success');
