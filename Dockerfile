@@ -10,6 +10,7 @@ COPY package*.json ./
 RUN npm install --omit=dev
 
 COPY src/ ./src/
+COPY version.json ./
 
 # Persistent volume voor WhatsApp sessie
 VOLUME /data
