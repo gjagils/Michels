@@ -7,12 +7,18 @@ const SETTINGS_PATH = '/data/settings.json';
 const DEFAULTS = {
   groupName: process.env.GROUP_NAME || '',
   trainerPhone: process.env.TRAINER_PHONE || '',
-  // Totale kosten per training (euro's), gelijk verdeeld over de aanwezigen
+  trainingHost: process.env.TRAINING_HOST || '',
   trainingCost: process.env.TRAINING_COST || '',
+  // Schema times (cron schedule)
+  pollTime: process.env.POLL_TIME || 'Maandag 18:00',
+  reminderTime: process.env.REMINDER_TIME || 'Dinsdag 09:00',
+  summaryTime: process.env.SUMMARY_TIME || 'Dinsdag 22:00',
+  paymentTime: process.env.PAYMENT_TIME || 'Woensdag 20:30',
   // bunq API instellingen
   bunqApiKey: process.env.BUNQ_API_KEY || '',
   bunqUserId: process.env.BUNQ_USER_ID || '',
   bunqAccountId: process.env.BUNQ_ACCOUNT_ID || '',
+  bunqAccountName: process.env.BUNQ_ACCOUNT_NAME || '',
   bunqEnvironment: process.env.BUNQ_ENVIRONMENT || 'sandbox',
 };
 
