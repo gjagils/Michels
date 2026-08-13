@@ -80,9 +80,11 @@ function createApp() {
 
   app.post('/api/bunq/discover', async (req, res) => {
     try {
-      const { apiKey, environment } = req.body || {};
+      const apiKey = getSetting('bunqApiKey');
+      const environment = getSetting('bunqEnvironment') || 'sandbox';
+
       if (!apiKey) {
-        return res.status(400).json({ error: 'apiKey is verplicht' });
+        return res.status(401).json({ error: 'BUNQ_API_KEY niet ingesteld in environment' });
       }
 
       // Probeer met deze API key de user ID en account ID op te halen
@@ -103,8 +105,17 @@ function createApp() {
 
       if (!userRes.ok) {
         const errorText = await userRes.text();
-        return res.status(401).json({
-          error: `API key geldig? ${userRes.status}: ${errorText}`,
+        let errorMsg = `bunq error ${userRes.status}`;
+
+        if (userRes.status === 403) {
+          errorMsg = '403: Onvoldoende rechten - controleer API key en environment';
+        } else if (userRes.status === 401) {
+          errorMsg = '401: API key ongeldig of verlopen';
+        }
+
+        return res.status(userRes.status).json({
+          error: errorMsg,
+          details: errorText.substring(0, 200),
         });
       }
 

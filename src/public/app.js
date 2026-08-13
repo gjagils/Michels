@@ -496,19 +496,11 @@ async function saveSettings() {
 }
 
 async function discoverBunqAccounts() {
-  const apiKey = document.getElementById('setting-bunq-api-key').value.trim();
-  const environment = document.getElementById('setting-bunq-environment').value;
-
-  if (!apiKey) {
-    showToast('Vul eerst je bunq API key in', 'error');
-    return;
-  }
-
   try {
     const res = await fetch('/api/bunq/discover', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ apiKey, environment }),
+      body: JSON.stringify({}),
     });
 
     const data = await res.json();
@@ -533,10 +525,17 @@ async function discoverBunqAccounts() {
 
       showToast(`✓ ${data.accounts?.length || 0} rekening(en) geladen! Selecteer de gewenste rekening en klik Opslaan.`, 'success');
     } else {
-      showToast(`Fout: ${data.error}`, 'error');
+      // Gedetailleerde foutmeldingen
+      let errorMsg = data.error || 'Onbekende fout';
+      if (errorMsg.includes('403') || errorMsg.includes('Insufficient')) {
+        errorMsg = '❌ API key ongeldig!\n\nCheck:\n• Juiste API key uit bunq app?\n• Juiste omgeving (sandbox/production)?\n• Key nog actief in bunq?';
+      } else if (errorMsg.includes('401')) {
+        errorMsg = '❌ API key niet gevonden in environment!\n\nZet BUNQ_API_KEY in Portainer.';
+      }
+      showToast(errorMsg, 'error');
     }
   } catch (err) {
-    showToast(`Fout: ${err.message}`, 'error');
+    showToast(`❌ Fout: ${err.message}`, 'error');
   }
 }
 
