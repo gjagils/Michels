@@ -1,71 +1,112 @@
-import BunqJSClient from '@bunq-community/bunq-js-client';
+import { v4 as uuidv4 } from 'uuid';
 import { getSetting } from './settings.js';
 
 class BunqPayments {
   constructor() {
-    this.client = null;
+    this.installationToken = null;
+    this.sessionToken = null;
+    this.deviceId = null;
+    this.userId = null;
+    this.accountId = null;
     this.initialized = false;
+  }
+
+  getBaseUrl() {
+    const env = getSetting('bunqEnvironment') || 'sandbox';
+    return env === 'production'
+      ? 'https://api.bunq.com/v1'
+      : 'https://public-api.sandbox.bunq.com/v1';
+  }
+
+  async call(method, endpoint, body = null) {
+    const url = `${this.getBaseUrl()}${endpoint}`;
+    const headers = {
+      'X-Bunq-Client-Request-Id': uuidv4(),
+      'Cache-Control': 'no-cache',
+      'User-Agent': 'SquashBot/1.0',
+      'Content-Type': 'application/json',
+    };
+
+    if (this.sessionToken) {
+      headers['X-Bunq-Client-Authentication'] = this.sessionToken;
+    } else if (this.installationToken) {
+      headers['X-Bunq-Client-Authentication'] = this.installationToken;
+    }
+
+    const options = { method, headers };
+    if (body) options.body = JSON.stringify(body);
+
+    try {
+      const res = await fetch(url, options);
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`HTTP ${res.status}: ${text}`);
+      }
+      return await res.json();
+    } catch (err) {
+      console.error(`[bunq] API call failed: ${method} ${endpoint} - ${err.message}`);
+      throw err;
+    }
   }
 
   async ensureInitialized() {
     if (this.initialized) return true;
 
     const apiKey = getSetting('bunqApiKey');
-    const environment = getSetting('bunqEnvironment') || 'sandbox';
-
     if (!apiKey) {
-      console.error('[bunq] API key niet ingesteld in settings');
+      console.error('[bunq] API key niet ingesteld');
       return false;
     }
 
     try {
-      const encryptionKey = 'test123456789012'; // Default encryption key voor de library
-      this.client = new BunqJSClient();
+      console.log('[bunq] Starting initialization...');
 
-      // Environment bepaalt welke server we gebruiken
-      const apiEnvironment = environment === 'production' ? 'PRODUCTION' : 'SANDBOX';
+      // Step 1: Installation (krijg installation token)
+      const installRes = await this.call('POST', '/installation', {
+        client_public_key: 'test', // Dummy key voor deze flow
+      });
+      this.installationToken = installRes.Response?.[1]?.Token?.token;
+      console.log('[bunq] ✓ Installation token acquired');
 
-      console.log(`[bunq] Initializing... (${apiEnvironment})`);
-
-      // Run setup: device registration en session opening
-      await this.client.run(
-        apiKey,
-        [], // permitted IPs (leeg = alle)
-        apiEnvironment,
-        encryptionKey
-      );
-
-      console.log('[bunq] ✓ Run complete');
-
-      // Installation
-      await this.client.install();
-      console.log('[bunq] ✓ Install complete');
-
-      // Device registration
-      await this.client.registerDevice('SquashBot');
+      // Step 2: Device Server (registreer device)
+      const deviceRes = await this.call('POST', '/device-server', {
+        description: 'SquashBot',
+        secret: apiKey,
+        permitted_ips: [],
+      });
+      this.deviceId = deviceRes.Response?.[0]?.Id?.id;
       console.log('[bunq] ✓ Device registered');
 
-      // Session opening
-      await this.client.registerSession();
+      // Step 3: Session Server (open session)
+      const sessionRes = await this.call('POST', '/session-server', {
+        secret: apiKey,
+      });
+      this.sessionToken = sessionRes.Response?.[1]?.Token?.token;
+      const user = sessionRes.Response?.[2]?.UserPerson;
+      this.userId = user?.id;
       console.log('[bunq] ✓ Session opened');
 
+      // Step 4: Get monetary account
+      const accountsRes = await this.call(
+        'GET',
+        `/user/${this.userId}/monetary-account`
+      );
+      const primaryAccount =
+        accountsRes.Response?.[0]?.MonetaryAccountBank ||
+        accountsRes.Response?.[0]?.MonetaryAccount;
+      this.accountId = primaryAccount?.id;
+      console.log('[bunq] ✓ Account identified');
+
       this.initialized = true;
-      console.log(`[bunq] ✅ Fully initialized (${apiEnvironment})`);
+      console.log('[bunq] ✅ Fully initialized');
       return true;
     } catch (err) {
-      console.error('[bunq] Initialization failed at:', err.message);
-      console.error('[bunq] Full error:', err);
+      console.error('[bunq] Initialization failed:', err.message);
       this.initialized = false;
       return false;
     }
   }
 
-  /**
-   * Maak een BunqMeTab aan (betaalverzoek met bedrag).
-   * @param {number} amountCents - Bedrag in centen (bijv. 833 voor €8,33)
-   * @param {string} description - Beschrijving
-   * @returns {Promise} {ok, url, tabId, expiryDate} of {ok: false, error}
-   */
   async createPaymentRequest({ amountCents, description }) {
     if (!amountCents || amountCents <= 0) {
       return { ok: false, error: 'Bedrag moet > 0 zijn' };
@@ -77,12 +118,11 @@ class BunqPayments {
 
     try {
       const amount = (amountCents / 100).toFixed(2);
-      const userId = this.client.getUserId();
-      const accountId = this.client.getMonetaryAccountId(userId, 0); // Primary account
 
-      const bunqmeTab = await this.client.api.bunqMeTab.create(
-        userId,
-        accountId,
+      // Create BunqMeTab
+      const tabRes = await this.call(
+        'POST',
+        `/user/${this.userId}/monetary-account/${this.accountId}/bunqme-tab`,
         {
           bunqme_tab_entry: {
             amount_inquired: {
@@ -94,42 +134,44 @@ class BunqPayments {
         }
       );
 
-      const tabId = bunqmeTab.id;
-      const url = bunqmeTab.bunqme_tab_share_url;
-      const expiry = bunqmeTab.time_expiry;
+      const tabId = tabRes.Response?.[0]?.Id?.id;
+
+      // Get tab details to retrieve share URL
+      const detailRes = await this.call(
+        'GET',
+        `/user/${this.userId}/monetary-account/${this.accountId}/bunqme-tab/${tabId}`
+      );
+
+      const tab = detailRes.Response?.[0]?.BunqMeTab;
 
       return {
         ok: true,
-        url,
+        url: tab?.bunqme_tab_share_url,
         tabId,
         amount,
         description,
-        expiryDate: expiry,
-        status: bunqmeTab.status,
+        expiryDate: tab?.time_expiry,
+        status: tab?.status,
       };
     } catch (err) {
-      console.error('[bunq] createPaymentRequest error:', err.message);
+      console.error('[bunq] createPaymentRequest failed:', err.message);
       return { ok: false, error: err.message };
     }
   }
 
-  /**
-   * Haal alle betalingen op (sinds een bepaalde timestamp).
-   * @param {Date} since
-   * @returns {Promise} {ok, payments}
-   */
   async getPayments(since = null) {
     if (!(await this.ensureInitialized())) {
       return { ok: false, error: 'bunq API niet geïnitialiseerd' };
     }
 
     try {
-      const userId = this.client.getUserId();
-      const accountId = this.client.getMonetaryAccountId(userId, 0);
+      const paymentsRes = await this.call(
+        'GET',
+        `/user/${this.userId}/monetary-account/${this.accountId}/payment`
+      );
 
-      const payments = await this.client.api.payment.list(userId, accountId);
-
-      const filtered = payments
+      const payments = (paymentsRes.Response || [])
+        .map((p) => p.Payment)
         .filter((p) => {
           if (!since) return true;
           const created = new Date(p.created);
@@ -138,55 +180,14 @@ class BunqPayments {
         .map((p) => ({
           id: p.id,
           amount: p.amount?.value,
-          currency: p.amount?.currency,
-          from: p.counterparty_alias?.iban || p.counterparty_alias?.phone_number || 'unknown',
+          from: p.counterparty_alias?.iban || 'unknown',
           description: p.description,
           date: p.created,
         }));
 
-      return { ok: true, payments: filtered };
+      return { ok: true, payments };
     } catch (err) {
-      console.error('[bunq] getPayments error:', err.message);
-      return { ok: false, error: err.message };
-    }
-  }
-
-  /**
-   * Haal BunqMeTabs op (betaalverzoeken).
-   * @param {Date} since
-   * @returns {Promise} {ok, tabs}
-   */
-  async getTabs(since = null) {
-    if (!(await this.ensureInitialized())) {
-      return { ok: false, error: 'bunq API niet geïnitialiseerd' };
-    }
-
-    try {
-      const userId = this.client.getUserId();
-      const accountId = this.client.getMonetaryAccountId(userId, 0);
-
-      const tabs = await this.client.api.bunqMeTab.list(userId, accountId);
-
-      const filtered = tabs
-        .filter((t) => {
-          if (!since) return true;
-          const created = new Date(t.created);
-          return created >= since;
-        })
-        .map((t) => ({
-          id: t.id,
-          amount: t.bunqme_tab_entry?.amount_inquired?.value,
-          description: t.bunqme_tab_entry?.description,
-          url: t.bunqme_tab_share_url,
-          status: t.status,
-          created: t.created,
-          timeExpiry: t.time_expiry,
-          payments: t.bunqme_tab_payments?.length || 0,
-        }));
-
-      return { ok: true, tabs: filtered };
-    } catch (err) {
-      console.error('[bunq] getTabs error:', err.message);
+      console.error('[bunq] getPayments failed:', err.message);
       return { ok: false, error: err.message };
     }
   }
