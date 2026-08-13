@@ -181,9 +181,12 @@ function createApp() {
 
   app.post('/api/bunq/accounts', async (req, res) => {
     try {
-      const { apiKey, userId, environment } = req.body || {};
+      const apiKey = getSetting('bunqApiKey');
+      const userId = getSetting('bunqUserId');
+      const environment = getSetting('bunqEnvironment') || 'sandbox';
+
       if (!apiKey || !userId) {
-        return res.status(400).json({ error: 'apiKey en userId verplicht' });
+        return res.status(400).json({ error: 'bunqApiKey of bunqUserId niet ingesteld (voer eerst Discover uit)' });
       }
 
       const baseUrl = environment === 'production'

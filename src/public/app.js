@@ -541,20 +541,10 @@ async function discoverBunqAccounts() {
 
 async function loadBunqAccounts() {
   try {
-    const settings = await fetch('/api/settings').then(r => r.json());
-    if (!settings.bunqApiKey || !settings.bunqUserId) {
-      showToast('bunq API key of User ID niet ingesteld', 'error');
-      return;
-    }
-
     const res = await fetch('/api/bunq/accounts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        apiKey: settings.bunqApiKey,
-        userId: settings.bunqUserId,
-        environment: settings.bunqEnvironment || 'sandbox',
-      }),
+      body: JSON.stringify({}),
     });
 
     if (!res.ok) {
