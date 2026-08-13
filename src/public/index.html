@@ -61,9 +61,14 @@
           <div id="group-hint" class="setting-label"></div>
           <label class="setting-label" for="setting-trainer-phone">Trainer telefoonnummer</label>
           <input id="setting-trainer-phone" type="text" placeholder="bijv. 31612345678">
+          <label class="setting-label" for="setting-bunq-account">bunq rekening (voor betaalverzoeken)</label>
+          <select id="setting-bunq-account" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 4px;">
+            <option value="">— Selecteer rekening —</option>
+          </select>
           <div class="actions">
             <button onclick="saveSettings()" class="btn btn-primary">Opslaan</button>
             <button onclick="loadGroups()" class="btn btn-secondary">🔄 Groepen verversen</button>
+            <button onclick="loadBunqAccounts()" class="btn btn-secondary">🏦 bunq rekeningen verversen</button>
             <button onclick="resetWhatsapp()" class="btn btn-secondary">⚠️ Opnieuw koppelen</button>
           </div>
         </div>

@@ -131,37 +131,90 @@ function createApp() {
       }
 
       const accountData = await accountRes.json();
-      const accounts = accountData.Response || [];
+      const accounts = (accountData.Response || [])
+        .map(a => ({
+          id: a.MonetaryAccountBank?.id || a.MonetaryAccount?.id,
+          name: a.MonetaryAccountBank?.description || a.MonetaryAccount?.description || 'Onbekend',
+          type: a.MonetaryAccountBank ? 'Bank' : 'Account',
+        }))
+        .filter(a => a.id);
 
       if (!accounts.length) {
         return res.status(400).json({ error: 'Geen monetaire accounts gevonden' });
       }
 
-      // Neem de eerste account (meestal de standaard betaalrekening)
-      const account = accounts[0].MonetaryAccountBank || accounts[0].MonetaryAccount;
-      const accountId = account?.id;
-
-      if (!accountId) {
-        return res.status(400).json({ error: 'Account ID niet gevonden' });
-      }
-
-      // Sla op in settings
+      // Sla op in settings (eerste account als default)
       updateSettings({
         bunqApiKey: apiKey,
         bunqUserId: user.id,
-        bunqAccountId: accountId,
+        bunqAccountId: accounts[0].id,
+        bunqAccountName: accounts[0].name,
         bunqEnvironment: environment || 'sandbox',
       });
 
       res.json({
         ok: true,
         userId: user.id,
-        accountId,
-        accountName: account?.description || 'Onbekend',
-        message: 'bunq instellingen opgeslagen! Je kunt nu betaalverzoeken versturen.',
+        accounts, // Toon alle accounts
+        selectedAccount: accounts[0],
+        message: `${accounts.length} rekening(en) gevonden. ${accounts[0].name} geselecteerd als default.`,
       });
     } catch (err) {
       console.error('[bunq discover]:', err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/bunq/accounts', async (req, res) => {
+    try {
+      const { apiKey, userId, environment } = req.body || {};
+      if (!apiKey || !userId) {
+        return res.status(400).json({ error: 'apiKey en userId verplicht' });
+      }
+
+      const baseUrl = environment === 'production'
+        ? 'https://api.bunq.com/v1'
+        : 'https://public-api.sandbox.bunq.com/v1';
+
+      const accountRes = await fetch(`${baseUrl}/user/${userId}/monetary-account`, {
+        method: 'GET',
+        headers: {
+          'X-Bunq-Client-Request-Id': uuidv4(),
+          'X-Bunq-Client-Authentication': `Bearer ${apiKey}`,
+          'Cache-Control': 'no-cache',
+          'User-Agent': 'SquashBot/1.0',
+        },
+      });
+
+      if (!accountRes.ok) {
+        return res.status(400).json({ error: `Kon accounts niet ophalen: ${accountRes.status}` });
+      }
+
+      const accountData = await accountRes.json();
+      const accounts = (accountData.Response || [])
+        .map(a => ({
+          id: a.MonetaryAccountBank?.id || a.MonetaryAccount?.id,
+          name: a.MonetaryAccountBank?.description || a.MonetaryAccount?.description || 'Onbekend',
+        }))
+        .filter(a => a.id);
+
+      res.json({ ok: true, accounts });
+    } catch (err) {
+      console.error('[bunq accounts]:', err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/bunq/select-account', async (req, res) => {
+    try {
+      const { accountId, accountName } = req.body || {};
+      if (!accountId) {
+        return res.status(400).json({ error: 'accountId verplicht' });
+      }
+
+      updateSettings({ bunqAccountId: accountId, bunqAccountName: accountName });
+      res.json({ ok: true, message: `Rekening '${accountName}' geselecteerd` });
+    } catch (err) {
       res.status(500).json({ error: err.message });
     }
   });

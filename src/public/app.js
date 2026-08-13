@@ -439,22 +439,82 @@ async function resetWhatsapp() {
 async function saveSettings() {
   const groupName = document.getElementById('setting-group-name').value.trim();
   const trainerPhone = document.getElementById('setting-trainer-phone').value.trim();
+  const bunqAccountValue = document.getElementById('setting-bunq-account').value;
+
+  let bunqAccountId, bunqAccountName;
+  if (bunqAccountValue) {
+    try {
+      const parsed = JSON.parse(bunqAccountValue);
+      bunqAccountId = parsed.id;
+      bunqAccountName = parsed.name;
+    } catch {}
+  }
+
   try {
+    const body = { groupName, trainerPhone };
+    if (bunqAccountId) {
+      body.bunqAccountId = bunqAccountId;
+      body.bunqAccountName = bunqAccountName;
+    }
+
     const res = await fetch('/api/settings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ groupName, trainerPhone }),
+      body: JSON.stringify(body),
     });
     const data = await res.json();
     if (data.ok) {
+      document.getElementById('setting-group-name').value = data.settings.groupName || '';
       document.getElementById('setting-trainer-phone').value = data.settings.trainerPhone || '';
-      showToast('Instellingen opgeslagen', 'success');
+      showToast('Instellingen opgeslagen' + (bunqAccountName ? ` (rekening: ${bunqAccountName})` : ''), 'success');
       fetchStatus();
     } else {
       showToast(data.error || 'Fout bij opslaan', 'error');
     }
   } catch {
     showToast('Fout bij opslaan instellingen', 'error');
+  }
+}
+
+async function loadBunqAccounts() {
+  try {
+    const settings = await fetch('/api/settings').then(r => r.json());
+    if (!settings.bunqApiKey || !settings.bunqUserId) {
+      showToast('bunq API key of User ID niet ingesteld', 'error');
+      return;
+    }
+
+    const res = await fetch('/api/bunq/accounts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        apiKey: settings.bunqApiKey,
+        userId: settings.bunqUserId,
+        environment: settings.bunqEnvironment || 'sandbox',
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      showToast(`Fout: ${err.error}`, 'error');
+      return;
+    }
+
+    const data = await res.json();
+    const select = document.getElementById('setting-bunq-account');
+    select.innerHTML = '<option value="">— Selecteer rekening —</option>';
+
+    data.accounts.forEach(acc => {
+      const option = document.createElement('option');
+      option.value = JSON.stringify({ id: acc.id, name: acc.name });
+      option.textContent = acc.name;
+      if (settings.bunqAccountId === acc.id) option.selected = true;
+      select.appendChild(option);
+    });
+
+    showToast(`${data.accounts.length} rekening(en) geladen`, 'success');
+  } catch (err) {
+    showToast(`Fout: ${err.message}`, 'error');
   }
 }
 
@@ -471,5 +531,6 @@ fetchStatus();
 loadNextTraining();
 loadNextMatch();
 loadSettings();
+loadBunqAccounts();
 loadGroups();
 pollInterval = setInterval(fetchStatus, 5000);

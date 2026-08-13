@@ -178,15 +178,27 @@ class BunqPayments {
         }
       );
 
-      const account =
-        accountsRes.Response?.[0]?.MonetaryAccountBank ||
-        accountsRes.Response?.[0]?.MonetaryAccount;
+      const targetAccountName = getSetting('bunqAccountName');
+      let selectedAccount = null;
 
-      this.accountId = account?.id;
+      // Zoek account op naam als ingesteld, anders eerste account
+      for (const item of accountsRes.Response || []) {
+        const acc = item.MonetaryAccountBank || item.MonetaryAccount;
+        if (targetAccountName && acc?.description === targetAccountName) {
+          selectedAccount = acc;
+          break;
+        }
+        if (!selectedAccount) selectedAccount = acc; // fallback: eerste account
+      }
+
+      this.accountId = selectedAccount?.id;
 
       if (!this.accountId) {
         throw new Error('No account ID found');
       }
+
+      console.log(`[bunq] ✓ Account selected: ${selectedAccount?.description || 'Unknown'}`);
+
 
       console.log('[bunq] ✓ Account identified');
       this.initialized = true;
