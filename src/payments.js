@@ -3,11 +3,6 @@ import { getSetting } from './settings.js';
 
 class BunqPayments {
   constructor() {
-    this.installationToken = null;
-    this.sessionToken = null;
-    this.deviceId = null;
-    this.userId = null;
-    this.accountId = null;
     this.initialized = false;
   }
 
@@ -19,19 +14,19 @@ class BunqPayments {
   }
 
   async call(method, endpoint, body = null) {
+    const apiKey = getSetting('bunqApiKey');
+    if (!apiKey) {
+      throw new Error('API key niet ingesteld');
+    }
+
     const url = `${this.getBaseUrl()}${endpoint}`;
     const headers = {
       'X-Bunq-Client-Request-Id': uuidv4(),
+      'X-Bunq-Client-Authentication': `Bearer ${apiKey}`,
       'Cache-Control': 'no-cache',
       'User-Agent': 'SquashBot/1.0',
       'Content-Type': 'application/json',
     };
-
-    if (this.sessionToken) {
-      headers['X-Bunq-Client-Authentication'] = this.sessionToken;
-    } else if (this.installationToken) {
-      headers['X-Bunq-Client-Authentication'] = this.installationToken;
-    }
 
     const options = { method, headers };
     if (body) options.body = JSON.stringify(body);
@@ -59,46 +54,32 @@ class BunqPayments {
     }
 
     try {
-      console.log('[bunq] Starting initialization...');
+      console.log('[bunq] Testing API key...');
 
-      // Step 1: Installation (krijg installation token)
-      const installRes = await this.call('POST', '/installation', {
-        client_public_key: 'test', // Dummy key voor deze flow
-      });
-      this.installationToken = installRes.Response?.[1]?.Token?.token;
-      console.log('[bunq] ✓ Installation token acquired');
+      // Test de API key door user info op te halen
+      const userRes = await this.call('GET', '/user');
+      const user = userRes.Response?.[0]?.UserPerson;
 
-      // Step 2: Device Server (registreer device)
-      const deviceRes = await this.call('POST', '/device-server', {
-        description: 'SquashBot',
-        secret: apiKey,
-        permitted_ips: [],
-      });
-      this.deviceId = deviceRes.Response?.[0]?.Id?.id;
-      console.log('[bunq] ✓ Device registered');
+      if (!user?.id) {
+        throw new Error('User ID niet gevonden in response');
+      }
 
-      // Step 3: Session Server (open session)
-      const sessionRes = await this.call('POST', '/session-server', {
-        secret: apiKey,
-      });
-      this.sessionToken = sessionRes.Response?.[1]?.Token?.token;
-      const user = sessionRes.Response?.[2]?.UserPerson;
-      this.userId = user?.id;
-      console.log('[bunq] ✓ Session opened');
-
-      // Step 4: Get monetary account
+      // Haal accounts op
       const accountsRes = await this.call(
         'GET',
-        `/user/${this.userId}/monetary-account`
+        `/user/${user.id}/monetary-account`
       );
+
       const primaryAccount =
         accountsRes.Response?.[0]?.MonetaryAccountBank ||
         accountsRes.Response?.[0]?.MonetaryAccount;
-      this.accountId = primaryAccount?.id;
-      console.log('[bunq] ✓ Account identified');
 
+      if (!primaryAccount?.id) {
+        throw new Error('Account ID niet gevonden');
+      }
+
+      console.log(`[bunq] ✅ API key valid (user: ${user.id}, account: ${primaryAccount.id})`);
       this.initialized = true;
-      console.log('[bunq] ✅ Fully initialized');
       return true;
     } catch (err) {
       console.error('[bunq] Initialization failed:', err.message);
@@ -118,11 +99,25 @@ class BunqPayments {
 
     try {
       const amount = (amountCents / 100).toFixed(2);
+      const apiKey = getSetting('bunqApiKey');
+
+      // Haal user info op
+      const userRes = await this.call('GET', '/user');
+      const userId = userRes.Response?.[0]?.UserPerson?.id;
+
+      // Haal account op
+      const accountsRes = await this.call(
+        'GET',
+        `/user/${userId}/monetary-account`
+      );
+      const accountId =
+        accountsRes.Response?.[0]?.MonetaryAccountBank?.id ||
+        accountsRes.Response?.[0]?.MonetaryAccount?.id;
 
       // Create BunqMeTab
       const tabRes = await this.call(
         'POST',
-        `/user/${this.userId}/monetary-account/${this.accountId}/bunqme-tab`,
+        `/user/${userId}/monetary-account/${accountId}/bunqme-tab`,
         {
           bunqme_tab_entry: {
             amount_inquired: {
@@ -136,10 +131,10 @@ class BunqPayments {
 
       const tabId = tabRes.Response?.[0]?.Id?.id;
 
-      // Get tab details to retrieve share URL
+      // Get tab details
       const detailRes = await this.call(
         'GET',
-        `/user/${this.userId}/monetary-account/${this.accountId}/bunqme-tab/${tabId}`
+        `/user/${userId}/monetary-account/${accountId}/bunqme-tab/${tabId}`
       );
 
       const tab = detailRes.Response?.[0]?.BunqMeTab;
@@ -165,9 +160,20 @@ class BunqPayments {
     }
 
     try {
+      const userRes = await this.call('GET', '/user');
+      const userId = userRes.Response?.[0]?.UserPerson?.id;
+
+      const accountsRes = await this.call(
+        'GET',
+        `/user/${userId}/monetary-account`
+      );
+      const accountId =
+        accountsRes.Response?.[0]?.MonetaryAccountBank?.id ||
+        accountsRes.Response?.[0]?.MonetaryAccount?.id;
+
       const paymentsRes = await this.call(
         'GET',
-        `/user/${this.userId}/monetary-account/${this.accountId}/payment`
+        `/user/${userId}/monetary-account/${accountId}/payment`
       );
 
       const payments = (paymentsRes.Response || [])
