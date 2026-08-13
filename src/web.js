@@ -1,6 +1,7 @@
 import express from 'express';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import whatsapp from './whatsapp.js';
 import sheets from './sheets.js';
@@ -25,12 +26,13 @@ function createApp() {
 
   app.get('/api/version', (req, res) => {
     try {
-      const versionFile = JSON.parse(require('fs').readFileSync(
-        require('path').join(require('path').dirname(require('url').fileURLToPath(import.meta.url)), '../version.json'),
+      const versionFile = JSON.parse(fs.readFileSync(
+        join(__dirname, '../version.json'),
         'utf8'
       ));
       res.json(versionFile);
-    } catch {
+    } catch (err) {
+      console.error('[Web] Kon version.json niet laden:', err.message);
       res.json({ version: 'unknown', lastDeployed: null });
     }
   });
