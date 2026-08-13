@@ -393,7 +393,6 @@ async function loadSettings() {
     const s = await res.json();
     document.getElementById('setting-group-name').value = s.groupName || '';
     document.getElementById('setting-trainer-phone').value = s.trainerPhone || '';
-    document.getElementById('setting-bunq-api-key').value = s.bunqApiKey || '';
     document.getElementById('setting-bunq-environment').value = s.bunqEnvironment || 'sandbox';
     document.getElementById('setting-training-host').value = s.trainingHost || '';
     document.getElementById('setting-training-cost').value = s.trainingCost || '50.00';
@@ -447,8 +446,6 @@ async function resetWhatsapp() {
 async function saveSettings() {
   const groupName = document.getElementById('setting-group-name').value.trim();
   const trainerPhone = document.getElementById('setting-trainer-phone').value.trim();
-  const bunqApiKey = document.getElementById('setting-bunq-api-key').value.trim();
-  const bunqEnvironment = document.getElementById('setting-bunq-environment').value;
   const trainingHost = document.getElementById('setting-training-host').value.trim();
   const trainingCost = document.getElementById('setting-training-cost').value.trim();
   const pollTime = document.getElementById('setting-poll-time').value.trim();
@@ -467,7 +464,7 @@ async function saveSettings() {
   }
 
   try {
-    const body = { groupName, trainerPhone, bunqApiKey, bunqEnvironment, trainingHost, trainingCost, pollTime, reminderTime, summaryTime, paymentTime };
+    const body = { groupName, trainerPhone, trainingHost, trainingCost, pollTime, reminderTime, summaryTime, paymentTime };
     if (bunqAccountId) {
       body.bunqAccountId = bunqAccountId;
       body.bunqAccountName = bunqAccountName;
@@ -482,8 +479,6 @@ async function saveSettings() {
     if (data.ok) {
       document.getElementById('setting-group-name').value = data.settings.groupName || '';
       document.getElementById('setting-trainer-phone').value = data.settings.trainerPhone || '';
-      document.getElementById('setting-bunq-api-key').value = ''; // Wis voor privacy
-      document.getElementById('setting-bunq-environment').value = data.settings.bunqEnvironment || 'sandbox';
       document.getElementById('setting-training-host').value = data.settings.trainingHost || '';
       document.getElementById('setting-training-cost').value = data.settings.trainingCost || '50.00';
       document.getElementById('setting-poll-time').value = data.settings.pollTime || 'Maandag 18:00';

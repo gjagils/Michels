@@ -50,7 +50,7 @@ function createApp() {
 
   app.post('/api/settings', async (req, res) => {
     try {
-      const { groupName, trainerPhone, trainingHost, trainingCost, pollTime, reminderTime, summaryTime, paymentTime, bunqApiKey, bunqEnvironment, bunqAccountId, bunqAccountName } = req.body || {};
+      const { groupName, trainerPhone, trainingHost, trainingCost, pollTime, reminderTime, summaryTime, paymentTime, bunqAccountId, bunqAccountName } = req.body || {};
       const settings = updateSettings({
         groupName,
         trainerPhone,
@@ -60,8 +60,6 @@ function createApp() {
         reminderTime,
         summaryTime,
         paymentTime,
-        bunqApiKey,
-        bunqEnvironment,
         bunqAccountId,
         bunqAccountName,
       });
