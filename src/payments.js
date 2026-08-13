@@ -1,8 +1,19 @@
+import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { getSetting } from './settings.js';
 
+const KEYS_PATH = '/data/bunq-keys';
+
 class BunqPayments {
   constructor() {
+    this.publicKey = null;
+    this.privateKey = null;
+    this.installationToken = null;
+    this.sessionToken = null;
+    this.userId = null;
+    this.accountId = null;
     this.initialized = false;
   }
 
@@ -13,33 +24,76 @@ class BunqPayments {
       : 'https://public-api.sandbox.bunq.com/v1';
   }
 
-  async call(method, endpoint, body = null) {
-    const apiKey = getSetting('bunqApiKey');
-    if (!apiKey) {
-      throw new Error('API key niet ingesteld');
-    }
+  ensureKeysExist() {
+    try {
+      if (!fs.existsSync(KEYS_PATH)) {
+        fs.mkdirSync(KEYS_PATH, { recursive: true });
+      }
 
+      const pubPath = path.join(KEYS_PATH, 'public.pem');
+      const privPath = path.join(KEYS_PATH, 'private.pem');
+
+      // Als keys niet bestaan, genereer ze
+      if (!fs.existsSync(pubPath) || !fs.existsSync(privPath)) {
+        console.log('[bunq] Generating RSA keypair...');
+        const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', {
+          modulusLength: 2048,
+          publicKeyEncoding: { type: 'spki', format: 'pem' },
+          privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+        });
+
+        fs.writeFileSync(pubPath, publicKey, 'utf8');
+        fs.writeFileSync(privPath, privateKey, 'utf8');
+        console.log('[bunq] ✓ Keys generated and saved');
+      }
+
+      this.publicKey = fs.readFileSync(pubPath, 'utf8');
+      this.privateKey = fs.readFileSync(privPath, 'utf8');
+    } catch (err) {
+      console.error('[bunq] Error managing keys:', err.message);
+      throw err;
+    }
+  }
+
+  sign(body) {
+    const sign = crypto.createSign('sha256');
+    sign.update(body);
+    return sign.sign(this.privateKey, 'base64');
+  }
+
+  async call(method, endpoint, body = null, headers = {}) {
     const url = `${this.getBaseUrl()}${endpoint}`;
-    const headers = {
-      'X-Bunq-Client-Request-Id': uuidv4(),
-      'X-Bunq-Client-Authentication': `Bearer ${apiKey}`,
+    const requestId = uuidv4();
+
+    const bodyStr = body ? JSON.stringify(body) : '';
+    const signature = bodyStr ? this.sign(bodyStr) : '';
+
+    const finalHeaders = {
+      'X-Bunq-Client-Request-Id': requestId,
       'Cache-Control': 'no-cache',
       'User-Agent': 'SquashBot/1.0',
       'Content-Type': 'application/json',
+      ...headers,
     };
 
-    const options = { method, headers };
-    if (body) options.body = JSON.stringify(body);
+    if (signature) {
+      finalHeaders['X-Bunq-Client-Signature'] = signature;
+    }
+
+    const options = { method, headers: finalHeaders };
+    if (bodyStr) options.body = bodyStr;
 
     try {
       const res = await fetch(url, options);
+      const text = await res.text();
+
       if (!res.ok) {
-        const text = await res.text();
         throw new Error(`HTTP ${res.status}: ${text}`);
       }
-      return await res.json();
+
+      return text ? JSON.parse(text) : {};
     } catch (err) {
-      console.error(`[bunq] API call failed: ${method} ${endpoint} - ${err.message}`);
+      console.error(`[bunq] ${method} ${endpoint} failed:`, err.message);
       throw err;
     }
   }
@@ -49,37 +103,96 @@ class BunqPayments {
 
     const apiKey = getSetting('bunqApiKey');
     if (!apiKey) {
-      console.error('[bunq] API key niet ingesteld');
+      console.error('[bunq] API key not set');
       return false;
     }
 
     try {
-      console.log('[bunq] Testing API key...');
+      this.ensureKeysExist();
+      console.log('[bunq] Starting initialization...');
 
-      // Test de API key door user info op te halen
-      const userRes = await this.call('GET', '/user');
-      const user = userRes.Response?.[0]?.UserPerson;
+      // Step 1: Installation
+      console.log('[bunq] Step 1: Installation...');
+      const pubKeyClean = this.publicKey
+        .split('\n')
+        .filter((line) => !line.includes('-----'))
+        .join('');
 
-      if (!user?.id) {
-        throw new Error('User ID niet gevonden in response');
+      const installRes = await this.call('POST', '/installation', {
+        client_public_key: pubKeyClean,
+      });
+
+      this.installationToken =
+        installRes.Response?.[1]?.Token?.token ||
+        installRes.Response?.[2]?.Token?.token;
+
+      if (!this.installationToken) {
+        throw new Error('No installation token in response');
       }
+      console.log('[bunq] ✓ Installation token acquired');
 
-      // Haal accounts op
-      const accountsRes = await this.call(
-        'GET',
-        `/user/${user.id}/monetary-account`
+      // Step 2: Device Registration
+      console.log('[bunq] Step 2: Device registration...');
+      const deviceRes = await this.call(
+        'POST',
+        '/device-server',
+        {
+          description: 'SquashBot',
+          secret: apiKey,
+          permitted_ips: [],
+        },
+        {
+          'X-Bunq-Client-Authentication': this.installationToken,
+        }
       );
 
-      const primaryAccount =
+      console.log('[bunq] ✓ Device registered');
+
+      // Step 3: Session Opening
+      console.log('[bunq] Step 3: Opening session...');
+      const sessionRes = await this.call(
+        'POST',
+        '/session-server',
+        { secret: apiKey },
+        {
+          'X-Bunq-Client-Authentication': this.installationToken,
+        }
+      );
+
+      this.sessionToken = sessionRes.Response?.[1]?.Token?.token;
+      const user = sessionRes.Response?.[2]?.UserPerson;
+
+      if (!this.sessionToken || !user?.id) {
+        throw new Error('No session token or user ID in response');
+      }
+
+      this.userId = user.id;
+      console.log('[bunq] ✓ Session opened');
+
+      // Step 4: Get Account
+      console.log('[bunq] Step 4: Getting account...');
+      const accountsRes = await this.call(
+        'GET',
+        `/user/${this.userId}/monetary-account`,
+        null,
+        {
+          'X-Bunq-Client-Authentication': this.sessionToken,
+        }
+      );
+
+      const account =
         accountsRes.Response?.[0]?.MonetaryAccountBank ||
         accountsRes.Response?.[0]?.MonetaryAccount;
 
-      if (!primaryAccount?.id) {
-        throw new Error('Account ID niet gevonden');
+      this.accountId = account?.id;
+
+      if (!this.accountId) {
+        throw new Error('No account ID found');
       }
 
-      console.log(`[bunq] ✅ API key valid (user: ${user.id}, account: ${primaryAccount.id})`);
+      console.log('[bunq] ✓ Account identified');
       this.initialized = true;
+      console.log('[bunq] ✅ Fully initialized');
       return true;
     } catch (err) {
       console.error('[bunq] Initialization failed:', err.message);
@@ -90,34 +203,20 @@ class BunqPayments {
 
   async createPaymentRequest({ amountCents, description }) {
     if (!amountCents || amountCents <= 0) {
-      return { ok: false, error: 'Bedrag moet > 0 zijn' };
+      return { ok: false, error: 'Amount must be > 0' };
     }
 
     if (!(await this.ensureInitialized())) {
-      return { ok: false, error: 'bunq API niet geïnitialiseerd' };
+      return { ok: false, error: 'bunq API not initialized' };
     }
 
     try {
       const amount = (amountCents / 100).toFixed(2);
-      const apiKey = getSetting('bunqApiKey');
-
-      // Haal user info op
-      const userRes = await this.call('GET', '/user');
-      const userId = userRes.Response?.[0]?.UserPerson?.id;
-
-      // Haal account op
-      const accountsRes = await this.call(
-        'GET',
-        `/user/${userId}/monetary-account`
-      );
-      const accountId =
-        accountsRes.Response?.[0]?.MonetaryAccountBank?.id ||
-        accountsRes.Response?.[0]?.MonetaryAccount?.id;
 
       // Create BunqMeTab
       const tabRes = await this.call(
         'POST',
-        `/user/${userId}/monetary-account/${accountId}/bunqme-tab`,
+        `/user/${this.userId}/monetary-account/${this.accountId}/bunqme-tab`,
         {
           bunqme_tab_entry: {
             amount_inquired: {
@@ -126,15 +225,26 @@ class BunqPayments {
             },
             description: description || 'Payment request',
           },
+        },
+        {
+          'X-Bunq-Client-Authentication': this.sessionToken,
         }
       );
 
       const tabId = tabRes.Response?.[0]?.Id?.id;
 
-      // Get tab details
+      if (!tabId) {
+        throw new Error('No tab ID in response');
+      }
+
+      // Get tab details to retrieve share URL
       const detailRes = await this.call(
         'GET',
-        `/user/${userId}/monetary-account/${accountId}/bunqme-tab/${tabId}`
+        `/user/${this.userId}/monetary-account/${this.accountId}/bunqme-tab/${tabId}`,
+        null,
+        {
+          'X-Bunq-Client-Authentication': this.sessionToken,
+        }
       );
 
       const tab = detailRes.Response?.[0]?.BunqMeTab;
@@ -156,24 +266,17 @@ class BunqPayments {
 
   async getPayments(since = null) {
     if (!(await this.ensureInitialized())) {
-      return { ok: false, error: 'bunq API niet geïnitialiseerd' };
+      return { ok: false, error: 'bunq API not initialized' };
     }
 
     try {
-      const userRes = await this.call('GET', '/user');
-      const userId = userRes.Response?.[0]?.UserPerson?.id;
-
-      const accountsRes = await this.call(
-        'GET',
-        `/user/${userId}/monetary-account`
-      );
-      const accountId =
-        accountsRes.Response?.[0]?.MonetaryAccountBank?.id ||
-        accountsRes.Response?.[0]?.MonetaryAccount?.id;
-
       const paymentsRes = await this.call(
         'GET',
-        `/user/${userId}/monetary-account/${accountId}/payment`
+        `/user/${this.userId}/monetary-account/${this.accountId}/payment`,
+        null,
+        {
+          'X-Bunq-Client-Authentication': this.sessionToken,
+        }
       );
 
       const payments = (paymentsRes.Response || [])
