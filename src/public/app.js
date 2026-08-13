@@ -482,7 +482,7 @@ async function saveSettings() {
     if (data.ok) {
       document.getElementById('setting-group-name').value = data.settings.groupName || '';
       document.getElementById('setting-trainer-phone').value = data.settings.trainerPhone || '';
-      document.getElementById('setting-bunq-api-key').value = data.settings.bunqApiKey || '';
+      document.getElementById('setting-bunq-api-key').value = ''; // Wis voor privacy
       document.getElementById('setting-bunq-environment').value = data.settings.bunqEnvironment || 'sandbox';
       document.getElementById('setting-training-host').value = data.settings.trainingHost || '';
       document.getElementById('setting-training-cost').value = data.settings.trainingCost || '50.00';
