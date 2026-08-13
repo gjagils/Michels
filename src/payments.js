@@ -113,15 +113,10 @@ class BunqPayments {
 
       // Step 1: Installation
       console.log('[bunq] Step 1: Installation...');
-      // Strip PEM headers and newlines — bunq wants just the base64 key
-      const pubKeyClean = this.publicKey
-        .split('\n')
-        .filter((line) => !line.includes('-----'))
-        .join('');
-
-      const installBody = { client_public_key: pubKeyClean };
+      // bunq wants the full PEM format (with headers and newlines)
+      const installBody = { client_public_key: this.publicKey };
       console.log('[bunq] Install body keys:', Object.keys(installBody));
-      console.log('[bunq] Public key length:', pubKeyClean.length);
+      console.log('[bunq] Public key starts with:', this.publicKey.substring(0, 50));
 
       const installRes = await this.call('POST', '/installation', installBody);
 
