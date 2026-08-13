@@ -8,7 +8,7 @@ const DEFAULTS = {
   groupName: process.env.GROUP_NAME || '',
   trainerPhone: process.env.TRAINER_PHONE || '',
   trainingHost: process.env.TRAINING_HOST || '',
-  trainingCost: process.env.TRAINING_COST || '',
+  trainingCost: process.env.TRAINING_COST || '50.00',
   // Schema times (cron schedule)
   pollTime: process.env.POLL_TIME || 'Maandag 18:00',
   reminderTime: process.env.REMINDER_TIME || 'Dinsdag 09:00',
@@ -73,7 +73,10 @@ export function updateSettings(patch = {}) {
   }
   if (typeof patch.trainingCost === 'string' || typeof patch.trainingCost === 'number') {
     const parsed = parseFloat(String(patch.trainingCost).replace(',', '.'));
-    next.trainingCost = Number.isFinite(parsed) && parsed >= 0 ? String(parsed) : '';
+    if (Number.isFinite(parsed) && parsed >= 0) {
+      next.trainingCost = String(parsed);
+    }
+    // Leeg of ongeldig = niet overschrijven, huidige waarde behouden
   }
   if (typeof patch.bunqApiKey === 'string') {
     next.bunqApiKey = patch.bunqApiKey.trim();
