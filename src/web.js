@@ -73,7 +73,7 @@ function createApp() {
       }
 
       // Check of schema times zijn gewijzigd - dan moet server restart
-      const hasScheduleChange = patch.pollTime || patch.reminderTime || patch.summaryTime || patch.paymentTime;
+      const hasScheduleChange = pollTime || reminderTime || summaryTime || paymentTime;
 
       res.json({ ok: true, settings, scheduleChanged: hasScheduleChange });
     } catch (err) {
