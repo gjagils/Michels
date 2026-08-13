@@ -14,7 +14,7 @@ class BunqPayments {
     const environment = getSetting('bunqEnvironment') || 'sandbox';
 
     if (!apiKey) {
-      console.error('[bunq] API key niet ingesteld');
+      console.error('[bunq] API key niet ingesteld in settings');
       return false;
     }
 
@@ -25,6 +25,8 @@ class BunqPayments {
       // Environment bepaalt welke server we gebruiken
       const apiEnvironment = environment === 'production' ? 'PRODUCTION' : 'SANDBOX';
 
+      console.log(`[bunq] Initializing... (${apiEnvironment})`);
+
       // Run setup: device registration en session opening
       await this.client.run(
         apiKey,
@@ -33,20 +35,26 @@ class BunqPayments {
         encryptionKey
       );
 
+      console.log('[bunq] ✓ Run complete');
+
       // Installation
       await this.client.install();
+      console.log('[bunq] ✓ Install complete');
 
       // Device registration
       await this.client.registerDevice('SquashBot');
+      console.log('[bunq] ✓ Device registered');
 
       // Session opening
       await this.client.registerSession();
+      console.log('[bunq] ✓ Session opened');
 
       this.initialized = true;
-      console.log(`[bunq] ✅ Initialized (${apiEnvironment})`);
+      console.log(`[bunq] ✅ Fully initialized (${apiEnvironment})`);
       return true;
     } catch (err) {
-      console.error('[bunq] Initialization failed:', err.message);
+      console.error('[bunq] Initialization failed at:', err.message);
+      console.error('[bunq] Full error:', err);
       this.initialized = false;
       return false;
     }
