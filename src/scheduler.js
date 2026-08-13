@@ -412,19 +412,42 @@ class Scheduler {
 
       let message;
       if (result.ok && result.url) {
-        // Succesvol → stuur de betaallink naar de groep
+        // Succesvol → stuur de betaallink naar elk aanwezig persoon privé
         message =
           `💸 *Betaalopdracht training ${dateStr}*\n\n` +
-          `${attendees.length} aanwezigen × €${perPerson.toFixed(2)} = €${cost.toFixed(2)}\n\n` +
+          `€${perPerson.toFixed(2)} per persoon (${attendees.length} aanwezigen)\n\n` +
           `💬 *Betaal hier:*\n` +
           `${result.url}\n\n` +
           `_Geldig tot: ${result.expiryDate || '~30 dagen'}_`;
 
-        await whatsapp.sendToGroup(message);
+        // Laad members om van naam naar telefoon te mappen
+        let members = [];
+        try {
+          members = await sheets.getMembers();
+        } catch (err) {
+          console.error('[Scheduler] Kon leden niet ophalen:', err.message);
+        }
+
+        // Stuur naar elk aanwezig persoon privé
+        let sentCount = 0;
+        for (const attendee of attendees) {
+          const member = members.find((m) => m.name === attendee.name);
+          if (member && member.phone) {
+            try {
+              await whatsapp.sendToPhone(member.phone, message);
+              sentCount++;
+            } catch (err) {
+              console.error(`[Scheduler] Kon bericht niet sturen naar ${attendee.name}:`, err.message);
+            }
+          } else {
+            console.warn(`[Scheduler] Telefoon niet gevonden voor ${attendee.name}`);
+          }
+        }
+
         console.log(
-          `[Scheduler] Betaalverzoek verstuurd (${attendees.length} aanwezigen, €${perPerson.toFixed(2)} p.p.) — tab ID: ${result.tabId}`
+          `[Scheduler] Betaalverzoeken verstuurd naar ${sentCount}/${attendees.length} personen, €${perPerson.toFixed(2)} p.p. — tab ID: ${result.tabId}`
         );
-        return { ok: true, tabId: result.tabId, attendees: attendees.length };
+        return { ok: true, tabId: result.tabId, attendees: sentCount };
       } else {
         // API niet beschikbaar → fallback naar manual
         message =
