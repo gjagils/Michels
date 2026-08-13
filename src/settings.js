@@ -23,13 +23,28 @@ const DEFAULTS = {
 };
 
 let cache = null;
+let lastModified = 0;
 
 function load() {
+  // Check of bestand is gewijzigd (niet op cache vertrouwen)
+  try {
+    if (fs.existsSync(SETTINGS_PATH)) {
+      const stat = fs.statSync(SETTINGS_PATH);
+      if (stat.mtimeMs !== lastModified) {
+        // Bestand is aangepast, invalideer cache
+        cache = null;
+      }
+    }
+  } catch {}
+
   if (cache) return cache;
+
   let stored = {};
   try {
     if (fs.existsSync(SETTINGS_PATH)) {
-      stored = JSON.parse(fs.readFileSync(SETTINGS_PATH, 'utf8'));
+      const content = fs.readFileSync(SETTINGS_PATH, 'utf8');
+      stored = JSON.parse(content);
+      lastModified = fs.statSync(SETTINGS_PATH).mtimeMs;
     }
   } catch (err) {
     console.error('[Settings] Kon settings niet laden:', err.message);
