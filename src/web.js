@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import whatsapp from './whatsapp.js';
 import sheets from './sheets.js';
 import scheduler from './scheduler.js';
-import { getSettings, updateSettings } from './settings.js';
+import { getSettings, getSetting, updateSettings } from './settings.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
