@@ -75,18 +75,29 @@ function updatePoll(sched) {
   if (sched.pendingPoll) {
     const poll = sched.pendingPoll;
     const count = Object.keys(poll.responses).length;
+    const attending = Object.values(poll.responses).filter(a => a).length;
     const trainer = poll.withTrainer ? 'met trainer' : 'zonder trainer';
-    pollEl.textContent = `Poll actief: ${poll.displayDate} (${trainer}) — ${count} reactie(s)`;
+    pollEl.textContent = `Poll actief: ${poll.displayDate} (${trainer}) — ${count} reactie(s), ${attending} komen`;
 
     let html = '';
-    for (const [name, attending] of Object.entries(poll.responses)) {
+    for (const [name, isAttending] of Object.entries(poll.responses)) {
       html += `<div class="response-row">
         <span>${name}</span>
-        <span class="${attending ? 'response-yes' : 'response-no'}">
-          ${attending ? '✅ Komt' : '❌ Komt niet'}
+        <span class="${isAttending ? 'response-yes' : 'response-no'}">
+          ${isAttending ? '✅ Komt' : '❌ Komt niet'}
         </span>
       </div>`;
     }
+
+    // Knop om betaalverzoeken naar aanwezigen te sturen
+    if (attending > 0) {
+      html += `<div class="actions" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+        <button onclick="sendPaymentRequestToPollAttendees()" class="btn btn-success">
+          💸 Betaalverzoeken naar ${attending} aanwezig
+        </button>
+      </div>`;
+    }
+
     responsesEl.innerHTML = html || '<span class="empty-state">Nog geen reacties</span>';
   } else {
     pollEl.textContent = 'Geen actieve poll';
@@ -283,6 +294,22 @@ async function sendPaymentRequest() {
     const data = await res.json();
     if (data.ok) {
       showToast(`💸 Betaalverzoeken verstuurd! (${data.attendees} personen)`, 'success');
+    } else {
+      showToast(data.error || 'Fout bij betaalverzoeken', 'error');
+    }
+  } catch {
+    showToast('Fout bij versturen betaalverzoeken', 'error');
+  }
+}
+
+async function sendPaymentRequestToPollAttendees() {
+  try {
+    const res = await fetch('/api/payment/request', { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      showToast(`💸 Betaalverzoeken verstuurd! (${data.attendees} personen)`, 'success');
+      // Refresh het scherm om updates te zien
+      setTimeout(() => location.reload(), 1500);
     } else {
       showToast(data.error || 'Fout bij betaalverzoeken', 'error');
     }
