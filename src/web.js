@@ -282,6 +282,17 @@ function createApp() {
     }
   });
 
+  app.post('/api/payment/test', async (req, res) => {
+    try {
+      // Test: create a 1-cent payment request
+      const result = await scheduler.sendTestPaymentRequest();
+      if (result && result.ok === false) return res.status(500).json({ error: result.error });
+      res.json({ ok: true, message: 'Test betaalverzoek verstuurd', ...result });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.post('/api/message/group', async (req, res) => {
     try {
       const { message } = req.body;

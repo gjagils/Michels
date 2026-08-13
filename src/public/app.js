@@ -329,6 +329,20 @@ async function sendPaymentRequestToPollAttendees() {
   }
 }
 
+async function sendTestPaymentRequest() {
+  try {
+    const res = await fetch('/api/payment/test', { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      showToast(`🧪 Test betaalverzoek verstuurd (€0,01)`, 'success');
+    } else {
+      showToast(data.error || 'Fout bij test betaalverzoek', 'error');
+    }
+  } catch {
+    showToast('Fout bij versturen test', 'error');
+  }
+}
+
 async function sendToGroup() {
   const msg = document.getElementById('custom-message').value.trim();
   if (!msg) return;

@@ -282,6 +282,41 @@ class Scheduler {
     }
   }
 
+  // ── Test: 1-cent payment request voor API debugging ────
+
+  async sendTestPaymentRequest() {
+    try {
+      const result = await payments.createPaymentRequest({
+        amountCents: 1,
+        description: 'Test betaalverzoek (1 cent)',
+      });
+
+      let message;
+      if (result.ok && result.url) {
+        message =
+          `🧪 *Test betaalverzoek*\n\n` +
+          `Bedrag: €0,01\n\n` +
+          `💬 *Link:*\n` +
+          `${result.url}`;
+
+        await whatsapp.sendToGroup(message);
+        console.log(`[Scheduler] Test betaalverzoek verstuurd (tab ID: ${result.tabId})`);
+        return { ok: true, tabId: result.tabId, url: result.url };
+      } else {
+        message =
+          `🧪 *Test betaalverzoek mislukt*\n\n` +
+          `Fout: ${result.error}`;
+
+        await whatsapp.sendToGroup(message);
+        console.log(`[Scheduler] Test betaalverzoek mislukt: ${result.error}`);
+        return { ok: false, error: result.error };
+      }
+    } catch (err) {
+      console.error('[Scheduler] Fout bij test betaalverzoek:', err.message);
+      return { ok: false, error: err.message };
+    }
+  }
+
   // ── Training dag: Betaalverzoek versturen ─────────────
   // Leest de aanwezigheid uit Sheets, berekent per-persoon kosten,
   // maakt betaalverzoeken aan (bunq.me) en stuurt ze naar de groep.
