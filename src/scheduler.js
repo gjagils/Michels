@@ -227,7 +227,8 @@ class Scheduler {
 
   async sendMatchReminder() {
     try {
-      const match = await sheets.getNextMatch();
+      // Haal match data met motivatie via SBN service
+      const match = await sbn.getEnrichedMatch();
       if (!match || !match.date) {
         console.log('[Scheduler] Geen aankomende wedstrijd gevonden');
         return;
@@ -263,6 +264,10 @@ class Scheduler {
       }
       if (reserve.length) {
         message += `🔄 *Reserve:*\n${reserve.map((n) => `  • ${n}`).join('\n')}\n\n`;
+      }
+
+      if (match.motivation) {
+        message += `💡 *Motivatie:*\n${match.motivation}\n\n`;
       }
 
       message += `Succes! 💪`;
@@ -368,7 +373,13 @@ class Scheduler {
       const friday = this.getNextFriday();
       const dateStr = this.formatDisplayDate(friday);
 
-      const message =
+      // Genereer motivatie via SBN service
+      const enriched = await sbn.enrichMatchWithMotivation({
+        opponent: 'Test Team',
+        league: 'Test Liga',
+      });
+
+      let message =
         `🧪 *Test Wedstrijd*\n\n` +
         `📅 ${dateStr}\n` +
         `🆚 Test Team\n` +
@@ -377,8 +388,13 @@ class Scheduler {
         `  • Speler 1\n` +
         `  • Speler 2\n\n` +
         `🔄 *Reserve:*\n` +
-        `  • Speler 3\n\n` +
-        `Succes! 💪`;
+        `  • Speler 3\n\n`;
+
+      if (enriched?.motivation) {
+        message += `💡 *Motivatie:*\n${enriched.motivation}\n\n`;
+      }
+
+      message += `Succes! 💪`;
 
       await whatsapp.sendToGroup(message);
       console.log('[Scheduler] Test wedstrijd reminder verstuurd');

@@ -1,76 +1,82 @@
-// SBN Toernooi scraper - verzamel wedstrijdgegevens
-// https://sbn.toernooi.nl
+import { getSetting } from './settings.js';
+import sheets from './sheets.js';
 
 class SBNService {
   constructor() {
-    this.username = process.env.SBN_USERNAME || '';
-    this.password = process.env.SBN_PASSWORD || '';
-    this.leagueId = process.env.SBN_LEAGUE_ID || '541DD45A-67FA-4AE1-8361-A9B54EDFF31F';
-    this.baseUrl = 'https://sbn.toernooi.nl';
-    this.sessionCookie = null;
+    this.lastFetch = null;
+    this.cache = null;
   }
 
-  // Placeholder - echte implementation vereist scraping
-  async getMatchData(opponent) {
-    console.log(`[SBN] Fetching data voor wedstrijd tegen ${opponent}...`);
+  async getMatchData() {
+    try {
+      console.log('[SBN] Fetching match data...');
 
-    // PROOF OF CONCEPT: Mock data voor testen
-    return {
-      opponent,
-      location: this.getOpponentLocation(opponent),
-      homeTeam: {
-        name: 'All Inn Squash 6',
-        position: 10,
-        points: 115,
-        recentForm: ['W', 'W', 'L', 'W', 'W'],
-        winRate: 0.67,
-      },
-      awayTeam: {
-        name: opponent,
-        position: Math.floor(Math.random() * 10) + 1,
-        points: Math.floor(Math.random() * 150) + 100,
-        recentForm: ['W', 'L', 'W', 'L', 'W'],
-        winRate: 0.60,
-      },
-      headToHead: {
-        gamesPlayed: 3,
-        homeWins: 2,
-        awayWins: 1,
-        lastResult: 'W',
-      },
-    };
+      // For now: get from sheets (SBN integration coming next)
+      const match = await sheets.getNextMatch();
+      if (!match) {
+        console.log('[SBN] Geen wedstrijdgegevens gevonden');
+        return null;
+      }
+
+      console.log(`[SBN] Match gevonden: ${match.opponent}`);
+      return match;
+    } catch (err) {
+      console.error('[SBN] Fout bij ophalen match data:', err.message);
+      return null;
+    }
   }
 
-  getOpponentLocation(opponent) {
-    const locations = {
-      'Squash Utrecht H9': 'Utrecht',
-      'Squash Almere 7': 'Almere',
-      'Topsquash Nijkerk 3': 'Nijkerk',
-      'All Inn Squash 8': 'Utrecht (All In)',
-      'Funzone Dronten 1': 'Dronten',
-    };
-    return locations[opponent] || 'TBA';
+  async enrichMatchWithMotivation(match) {
+    if (!match) return null;
+
+    try {
+      const apiKey = getSetting('anthropicApiKey');
+      if (!apiKey) {
+        console.log('[SBN] Anthropic API key niet ingesteld, skip motivation');
+        return match;
+      }
+
+      console.log('[SBN] Genereren motivatie via Claude...');
+      const prompt = `Je bent een squash coach. Geef kort (1-2 zinnen) motivatie en tips voor een wedstrijd tegen ${match.opponent} in ${match.league}. Wees enthousiast en praktisch.`;
+
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'claude-opus-4-1-20250805',
+          max_tokens: 150,
+          messages: [{ role: 'user', content: prompt }],
+        }),
+      });
+
+      if (!res.ok) {
+        console.error(`[SBN] Claude API error: ${res.status}`);
+        return match;
+      }
+
+      const data = await res.json();
+      const motivation = data.content?.[0]?.text || '';
+
+      console.log(`[SBN] Motivatie gegenereerd: ${motivation.substring(0, 60)}...`);
+      return {
+        ...match,
+        motivation,
+      };
+    } catch (err) {
+      console.error('[SBN] Fout bij motivatie generatie:', err.message);
+      return match;
+    }
   }
 
-  async generateMotivationalSpeech(homeTeam, awayTeam) {
-    return this.getGenericMotivation(homeTeam, awayTeam);
-  }
-
-  getGenericMotivation(homeTeam, awayTeam) {
-    const ourWins = homeTeam.recentForm.filter(x => x === 'W').length;
-    const theirWins = awayTeam.recentForm.filter(x => x === 'W').length;
-
-    if (ourWins > theirWins) return 'We zitten in vorm - laten zien dat we beter zijn!';
-    if (theirWins > ourWins) return 'Zij zijn favoriet maar we hebben alles in huis - GA ERVOOR!';
-    return 'Gelijke krachten - zet alles in en win deze!';
-  }
-
-  getFormEmoji(wins, losses) {
-    const winRate = wins / (wins + losses);
-    if (winRate >= 0.7) return '🔥';
-    if (winRate >= 0.5) return '💪';
-    return '📈';
+  async getEnrichedMatch() {
+    const match = await this.getMatchData();
+    return await this.enrichMatchWithMotivation(match);
   }
 }
 
-export default new SBNService();
+const sbn = new SBNService();
+export default sbn;
