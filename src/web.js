@@ -198,8 +198,13 @@ function createApp() {
       const userId = getSetting('bunqUserId');
       const environment = getSetting('bunqEnvironment') || 'sandbox';
 
+      console.log(`[bunq/accounts] Check: apiKey=${apiKey ? '***' : '(leeg)'} userId=${userId || '(leeg)'}`);
+
       if (!apiKey || !userId) {
-        return res.status(400).json({ error: 'bunqApiKey of bunqUserId niet ingesteld (voer eerst Discover uit)' });
+        return res.status(400).json({
+          error: 'bunqApiKey of bunqUserId niet ingesteld',
+          detail: `apiKey: ${apiKey ? 'OK' : 'LEEG'}, userId: ${userId ? 'OK' : 'LEEG'} — voer eerst Discover uit`
+        });
       }
 
       const baseUrl = environment === 'production'
