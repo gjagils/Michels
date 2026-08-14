@@ -488,18 +488,25 @@ async function resetWhatsapp() {
 }
 
 async function saveSettings() {
-  const groupName = document.getElementById('setting-group-name').value.trim();
-  const trainerPhone = document.getElementById('setting-trainer-phone').value.trim();
-  const testerPhone = document.getElementById('setting-tester-phone').value.trim();
-  const sbnTeamUrl = document.getElementById('setting-sbn-team-url').value.trim();
-  const sbnDrawUrl = document.getElementById('setting-sbn-draw-url').value.trim();
-  const trainingHost = document.getElementById('setting-training-host').value.trim();
-  const trainingCost = document.getElementById('setting-training-cost').value.trim();
-  const pollTime = document.getElementById('setting-poll-time').value.trim();
-  const reminderTime = document.getElementById('setting-reminder-time').value.trim();
-  const summaryTime = document.getElementById('setting-summary-time').value.trim();
-  const paymentTime = document.getElementById('setting-payment-time').value.trim();
-  const bunqAccountValue = document.getElementById('setting-bunq-account').value;
+  // Helper to safely get value from element
+  const getVal = (id) => {
+    const el = document.getElementById(id);
+    return el ? el.value.trim() : '';
+  };
+
+  const groupName = getVal('setting-group-name');
+  const trainerPhone = getVal('setting-trainer-phone');
+  const testerPhone = getVal('setting-tester-phone');
+  const sbnTeamUrl = getVal('setting-sbn-team-url');
+  const sbnDrawUrl = getVal('setting-sbn-draw-url');
+  const trainingHost = getVal('setting-training-host');
+  const trainingCost = getVal('setting-training-cost');
+  const pollTime = getVal('setting-poll-time');
+  const reminderTime = getVal('setting-reminder-time');
+  const summaryTime = getVal('setting-summary-time');
+  const paymentTime = getVal('setting-payment-time');
+  const bunqAccountEl = document.getElementById('setting-bunq-account');
+  const bunqAccountValue = bunqAccountEl ? bunqAccountEl.value : '';
 
   let bunqAccountId, bunqAccountName;
   if (bunqAccountValue) {
