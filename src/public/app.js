@@ -607,6 +607,12 @@ async function loadBunqAccounts() {
     });
     const currentSettings = await res1.json();
 
+    // Skip bunq loading als API key niet ingesteld is
+    if (!currentSettings.bunqApiKey) {
+      console.log('[Bunq] Skipped: API key not set');
+      return;
+    }
+
     const res = await fetch('/api/bunq/accounts?t=' + Date.now(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' },
@@ -615,7 +621,7 @@ async function loadBunqAccounts() {
 
     if (!res.ok) {
       const err = await res.json();
-      showToast(`Fout: ${err.error}`, 'error');
+      console.warn(`[Bunq] Load error: ${err.error}`);
       return;
     }
 
