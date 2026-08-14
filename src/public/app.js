@@ -25,9 +25,16 @@ document.querySelectorAll('.tab').forEach((tab) => {
 });
 
 // Herstel actieve tab na page load
-window.addEventListener('load', () => {
+// BELANGRIJK: wacht tot loadSettings() klaar is, dan pas tab wisselen
+window.addEventListener('load', async () => {
   const savedTab = localStorage.getItem('activeTab') || 'dashboard';
-  setTimeout(() => switchTab(savedTab), 100);
+  console.log(`[Init] Wacht op loadSettings() voordat tab ${savedTab} actief wordt...`);
+
+  // Wacht 500ms zodat loadSettings() (async) zeker klaar is
+  await new Promise(resolve => setTimeout(resolve, 500));
+
+  console.log(`[Init] Activeer tab: ${savedTab}`);
+  switchTab(savedTab);
 });
 
 // ── Status ───────────────────────────────────────────
