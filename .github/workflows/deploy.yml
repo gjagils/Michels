@@ -23,7 +23,7 @@ jobs:
 
       - name: Bump version
         run: |
-          node -e '
+          cat > /tmp/bump-version.js << 'EOF'
           const fs = require("fs");
           const ver = JSON.parse(fs.readFileSync("version.json", "utf8"));
           const oldVer = ver.version;
@@ -32,8 +32,10 @@ jobs:
           ver.lastDeployed = new Date().toISOString();
           fs.writeFileSync("version.json", JSON.stringify(ver, null, 2));
           console.log("[VERSION] Bumped " + oldVer + " → " + newVer);
-          '
+          EOF
+          node /tmp/bump-version.js
           cat version.json
+          rm /tmp/bump-version.js
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v4
