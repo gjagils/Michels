@@ -463,7 +463,6 @@ async function loadSettings() {
       document.getElementById('setting-tester-phone').value = s.testerPhone || '';
       document.getElementById('setting-sbn-team-url').value = s.sbnTeamUrl || '';
       document.getElementById('setting-sbn-draw-url').value = s.sbnDrawUrl || '';
-      document.getElementById('setting-bunq-environment').value = s.bunqEnvironment || 'sandbox';
       document.getElementById('setting-training-host').value = s.trainingHost || '';
       document.getElementById('setting-training-cost').value = s.trainingCost || '50.00';
       document.getElementById('setting-poll-time').value = s.pollTime || 'Maandag 18:00';
