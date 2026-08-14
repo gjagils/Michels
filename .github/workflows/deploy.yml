@@ -23,16 +23,16 @@ jobs:
 
       - name: Bump version
         run: |
-          node -e "
-          const fs = require('fs');
-          const ver = JSON.parse(fs.readFileSync('version.json', 'utf8'));
+          node -e '
+          const fs = require("fs");
+          const ver = JSON.parse(fs.readFileSync("version.json", "utf8"));
           const oldVer = ver.version;
           const newVer = (parseFloat(ver.version) + 0.01).toFixed(2);
           ver.version = newVer;
           ver.lastDeployed = new Date().toISOString();
-          fs.writeFileSync('version.json', JSON.stringify(ver, null, 2));
-          console.log('[VERSION] Bumped ' + oldVer + ' → ' + newVer);
-          "
+          fs.writeFileSync("version.json", JSON.stringify(ver, null, 2));
+          console.log("[VERSION] Bumped " + oldVer + " → " + newVer);
+          '
           cat version.json
 
       - name: Log in to GitHub Container Registry
