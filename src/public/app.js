@@ -491,7 +491,16 @@ async function saveSettings() {
   // Helper to safely get value from element
   const getVal = (id) => {
     const el = document.getElementById(id);
-    return el ? el.value.trim() : '';
+    if (!el) {
+      console.warn(`[Settings] Element missing: ${id}`);
+      return '';
+    }
+    const val = el.value;
+    if (val === undefined) {
+      console.warn(`[Settings] Element ${id} has undefined value, using empty string`);
+      return '';
+    }
+    return val.trim();
   };
 
   const groupName = getVal('setting-group-name');
@@ -505,6 +514,7 @@ async function saveSettings() {
   const reminderTime = getVal('setting-reminder-time');
   const summaryTime = getVal('setting-summary-time');
   const paymentTime = getVal('setting-payment-time');
+  console.log('[Settings] Form values:', { pollTime, reminderTime, summaryTime, paymentTime });
   const bunqAccountEl = document.getElementById('setting-bunq-account');
   const bunqAccountValue = bunqAccountEl ? bunqAccountEl.value : '';
 
