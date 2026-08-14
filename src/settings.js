@@ -115,16 +115,17 @@ export function updateSettings(patch = {}) {
   if (typeof patch.bunqAccountName === 'string') {
     next.bunqAccountName = patch.bunqAccountName.trim();
   }
-  if (typeof patch.pollTime === 'string') {
+  // Ignore lege strings - use defaults instead
+  if (typeof patch.pollTime === 'string' && patch.pollTime.trim()) {
     next.pollTime = patch.pollTime.trim();
   }
-  if (typeof patch.reminderTime === 'string') {
+  if (typeof patch.reminderTime === 'string' && patch.reminderTime.trim()) {
     next.reminderTime = patch.reminderTime.trim();
   }
-  if (typeof patch.summaryTime === 'string') {
+  if (typeof patch.summaryTime === 'string' && patch.summaryTime.trim()) {
     next.summaryTime = patch.summaryTime.trim();
   }
-  if (typeof patch.paymentTime === 'string') {
+  if (typeof patch.paymentTime === 'string' && patch.paymentTime.trim()) {
     next.paymentTime = patch.paymentTime.trim();
   }
   cache = next;
