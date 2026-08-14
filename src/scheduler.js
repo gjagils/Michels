@@ -267,8 +267,8 @@ class Scheduler {
 
       message += `Succes! 💪`;
 
-      await whatsapp.sendToGroup(message);
-      console.log(`[Scheduler] Wedstrijd reminder verstuurd: ${match.opponent}`);
+      await whatsapp.sendToTrainer(message);
+      console.log(`[Scheduler] Wedstrijd reminder verstuurd naar trainer: ${match.opponent}`);
       return { ok: true };
     } catch (err) {
       console.error('[Scheduler] Fout bij wedstrijd reminder:', err.message);
