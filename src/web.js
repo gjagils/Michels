@@ -74,7 +74,13 @@ function createApp() {
       const startTime = new Date().toISOString();
       console.log(`[API] -- DRUK OP KNOP ${startTime}`);
 
-      const { groupName, trainerPhone, testerPhone, trainingHost, trainingCost, pollTime, reminderTime, summaryTime, paymentTime, bunqAccountId, bunqAccountName, sbnTeamUrl, sbnDrawUrl } = req.body || {};
+      let { groupName, trainerPhone, testerPhone, trainingHost, trainingCost, pollTime, reminderTime, summaryTime, paymentTime, bunqAccountId, bunqAccountName, sbnTeamUrl, sbnDrawUrl } = req.body || {};
+
+      // Filter out 'undefined' strings (browser sometimes sends these instead of empty)
+      if (reminderTime === 'undefined') reminderTime = '';
+      if (summaryTime === 'undefined') summaryTime = '';
+      if (paymentTime === 'undefined') paymentTime = '';
+
       console.log(`[API] Input ontvangen: pollTime='${pollTime}' reminderTime='${reminderTime}' summaryTime='${summaryTime}' paymentTime='${paymentTime}'`);
 
       const settings = updateSettings({
