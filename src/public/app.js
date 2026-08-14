@@ -299,7 +299,11 @@ async function sendMatchReminder() {
   try {
     const res = await fetch('/api/poll/match', { method: 'POST' });
     const data = await res.json();
-    showToast(data.ok ? 'Wedstrijd reminder verstuurd!' : data.error, data.ok ? 'success' : 'error');
+    if (data.ok && data.warning) {
+      showToast(`⚠️ Verstuurd, maar zonder motivatie: ${data.warning}`, 'warning');
+    } else {
+      showToast(data.ok ? 'Wedstrijd reminder verstuurd!' : data.error, data.ok ? 'success' : 'error');
+    }
   } catch {
     showToast('Fout bij versturen reminder', 'error');
   }
@@ -368,7 +372,9 @@ async function sendTestMatchReminder() {
   try {
     const res = await fetch('/api/match/test', { method: 'POST' });
     const data = await res.json();
-    if (data.ok) {
+    if (data.ok && data.warning) {
+      showToast(`⚠️ Verstuurd, maar zonder motivatie: ${data.warning}`, 'warning');
+    } else if (data.ok) {
       showToast('🧪 Test wedstrijd reminder verstuurd', 'success');
     } else {
       showToast(data.error || 'Fout bij test wedstrijd', 'error');
@@ -577,24 +583,13 @@ async function saveSettings() {
       const pollValue = document.getElementById('setting-poll-time').value;
       console.log('[Settings] Form refreshed, poll now:', pollValue);
 
-      // Auto restart als schema is gewijzigd
-      if (data.scheduleChanged) {
-        showToast('⏳ Instellingen opgeslagen - Server restart...', 'success');
-        localStorage.setItem('activeTab', 'settings');
-        // Yield to event loop to let rendering happen before reload
-        await new Promise(resolve => setTimeout(resolve, 100));
-        // Then wait 1s more to let user see the updated form
-        setTimeout(() => {
-          fetch('/api/restart', { method: 'POST' }).catch(() => {});
-          setTimeout(() => {
-            console.log('[Settings] Wacht totdat server weer online is...');
-            location.reload();
-          }, 4000);
-        }, 1000);
-      } else {
-        showToast('Instellingen opgeslagen!', 'success');
-        fetchStatus();
-      }
+      // Schema wordt server-side live herladen (scheduler.restart()) —
+      // geen process restart en dus geen page reload meer nodig.
+      showToast(
+        data.scheduleChanged ? '✅ Instellingen opgeslagen — schema direct actief' : 'Instellingen opgeslagen!',
+        'success'
+      );
+      fetchStatus();
     } else {
       showToast(data.error || 'Fout bij opslaan', 'error');
     }

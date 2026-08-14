@@ -55,7 +55,7 @@ class SBNService {
       console.log(`[SBN] apiKey set: ${apiKey ? 'YES' : 'NO'}`);
       if (!apiKey) {
         console.log('[SBN] ⚠️ Anthropic API key NOT ingesteld, skip motivation');
-        return match;
+        return { ...match, motivationError: 'Anthropic API key niet ingesteld' };
       }
 
       console.log('[SBN] 🤖 Genereren motivatie + stats via Claude...');
@@ -75,17 +75,24 @@ STATS: [tekst]`;
           'content-type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'claude-opus-4-1-20250805',
+          // claude-opus-4-1-20250805 retired 2026-08-05 (was silently
+          // erroring on every call — see error handling below, which used
+          // to swallow this into a plain "no motivation" fallback).
+          model: 'claude-opus-5',
           max_tokens: 300,
+          // Thinking is on by default on Opus 5. Without this, thinking can
+          // consume the whole 300-token budget and leave nothing for the
+          // actual answer — disable it, this prompt needs no reasoning.
+          thinking: { type: 'disabled' },
           messages: [{ role: 'user', content: prompt }],
         }),
       });
 
       if (!res.ok) {
-        console.error(`[SBN] ❌ Claude API error: ${res.status}`);
         const errText = await res.text();
+        console.error(`[SBN] ❌ Claude API error: ${res.status}`);
         console.error(`[SBN] Error details: ${errText}`);
-        return match;
+        return { ...match, motivationError: `Claude API fout ${res.status}` };
       }
 
       const data = await res.json();
@@ -98,6 +105,11 @@ STATS: [tekst]`;
 
       const motivation = motivationMatch?.[1]?.trim() || response;
       const stats = statsMatch?.[1]?.trim() || '';
+
+      if (!motivation) {
+        console.warn('[SBN] ⚠️ Claude gaf een leeg antwoord (mogelijk max_tokens bereikt)');
+        return { ...match, motivationError: 'Claude gaf een leeg antwoord' };
+      }
 
       console.log(`[SBN] ✅ Motivatie gegenereerd: ${motivation.substring(0, 60)}...`);
       if (stats) console.log(`[SBN] ✅ Stats gegenereerd: ${stats.substring(0, 60)}...`);
@@ -112,7 +124,7 @@ STATS: [tekst]`;
       };
     } catch (err) {
       console.error('[SBN] Fout bij motivatie generatie:', err.message);
-      return match;
+      return { ...match, motivationError: err.message };
     }
   }
 

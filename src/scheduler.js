@@ -138,6 +138,24 @@ class Scheduler {
     console.log('[Scheduler] Alle jobs gestart');
   }
 
+  // Stopt alle actieve cron jobs (zonder process restart)
+  stop() {
+    Object.values(this.jobs).forEach((job) => {
+      try { job.stop(); } catch {}
+    });
+    this.jobs = {};
+  }
+
+  // Herlaadt het schema in-process — leest settings.json opnieuw en
+  // herregistreert de cron jobs. Geen server restart nodig, dus de browser
+  // hoeft ook niet te wachten op een herstart die soms te lang duurt
+  // (en dan een reload deed voordat de server weer online was).
+  restart() {
+    console.log('[Scheduler] Schema wordt live herladen...');
+    this.stop();
+    this.start();
+  }
+
   // ── Maandag: Training Poll ─────────────────────────
 
   async sendTrainingPoll() {
@@ -268,6 +286,8 @@ class Scheduler {
 
       if (match.motivation) {
         message += `💡 *Motivatie:*\n${match.motivation}\n\n`;
+      } else if (match.motivationError) {
+        message += `⚠️ *Motivatie niet beschikbaar:* ${match.motivationError}\n\n`;
       }
 
       if (match.stats) {
@@ -278,6 +298,10 @@ class Scheduler {
 
       await whatsapp.sendToTester(message);
       console.log(`[Scheduler] Wedstrijd reminder verstuurd naar tester: ${match.opponent}`);
+      if (match.motivationError) {
+        console.warn(`[Scheduler] Motivatie ontbrak: ${match.motivationError}`);
+        return { ok: true, warning: match.motivationError };
+      }
       return { ok: true };
     } catch (err) {
       console.error('[Scheduler] Fout bij wedstrijd reminder:', err.message);
@@ -396,6 +420,8 @@ class Scheduler {
 
       if (enriched?.motivation) {
         message += `💡 *Motivatie:*\n${enriched.motivation}\n\n`;
+      } else if (enriched?.motivationError) {
+        message += `⚠️ *Motivatie niet beschikbaar:* ${enriched.motivationError}\n\n`;
       }
 
       if (enriched?.stats) {
@@ -406,6 +432,10 @@ class Scheduler {
 
       await whatsapp.sendToTester(message);
       console.log('[Scheduler] Test wedstrijd reminder verstuurd naar tester');
+      if (enriched?.motivationError) {
+        console.warn(`[Scheduler] Motivatie ontbrak: ${enriched.motivationError}`);
+        return { ok: true, warning: enriched.motivationError };
+      }
       return { ok: true };
     } catch (err) {
       console.error('[Scheduler] Fout bij test wedstrijd reminder:', err.message);

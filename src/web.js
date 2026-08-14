@@ -110,8 +110,13 @@ function createApp() {
         console.error('[Web] Groep herladen na opslaan mislukt:', e.message);
       }
 
-      // Check of schema times zijn gewijzigd - dan moet server restart
+      // Check of schema times zijn gewijzigd - dan cron jobs live herladen.
+      // Geen process restart meer nodig: dat gaf een race tussen de container
+      // die weer opstart en de browser die te vroeg reload't (zie git log).
       const hasScheduleChange = pollTime || reminderTime || summaryTime || paymentTime;
+      if (hasScheduleChange) {
+        scheduler.restart();
+      }
 
       res.json({ ok: true, settings, scheduleChanged: hasScheduleChange });
     } catch (err) {
@@ -351,7 +356,7 @@ function createApp() {
     try {
       const result = await scheduler.sendMatchReminder();
       if (result && result.ok === false) return res.status(500).json({ error: result.error });
-      res.json({ ok: true, message: 'Wedstrijd reminder verstuurd' });
+      res.json({ ok: true, message: 'Wedstrijd reminder verstuurd', warning: result?.warning });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -361,7 +366,7 @@ function createApp() {
     try {
       const result = await scheduler.sendTestMatchReminder();
       if (result && result.ok === false) return res.status(500).json({ error: result.error });
-      res.json({ ok: true, message: 'Test wedstrijd reminder verstuurd' });
+      res.json({ ok: true, message: 'Test wedstrijd reminder verstuurd', warning: result?.warning });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
