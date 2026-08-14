@@ -2,6 +2,7 @@ import whatsapp from './whatsapp.js';
 import sheets from './sheets.js';
 import scheduler from './scheduler.js';
 import createApp from './web.js';
+import { getSettings } from './settings.js';
 
 // Voorkom dat uncaught errors het hele process killen
 process.on('unhandledRejection', (err) => {
@@ -14,7 +15,19 @@ process.on('uncaughtException', (err) => {
 });
 
 async function main() {
+  const startTime = new Date().toISOString();
   console.log('=== Squash Team Manager ===');
+  console.log(`[Server] -- START SERVER ${startTime}`);
+
+  // Log ingeladen settings
+  const settings = getSettings();
+  console.log(`[Server] Settings geladen:
+  - pollTime: ${settings.pollTime}
+  - reminderTime: ${settings.reminderTime}
+  - summaryTime: ${settings.summaryTime}
+  - paymentTime: ${settings.paymentTime}
+  - trainingHost: ${settings.trainingHost}
+  - trainingCost: €${settings.trainingCost || '(niet ingesteld)'}`);
 
   // Web interface starten (altijd, ongeacht andere services)
   const port = process.env.PORT || 8400;

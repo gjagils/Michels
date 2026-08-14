@@ -95,10 +95,15 @@ class Scheduler {
     const tz = { timezone: 'Europe/Amsterdam' };
 
     // Lees times uit settings, fallback naar defaults
+    const startTime = new Date().toISOString();
+    console.log(`[Scheduler] -- START SCHEDULER ${startTime}`);
+
     const pollTime = getSetting('pollTime') || 'Maandag 18:00';
     const reminderTime = getSetting('reminderTime') || 'Dinsdag 09:00';
     const summaryTime = getSetting('summaryTime') || 'Dinsdag 22:00';
     const paymentTime = getSetting('paymentTime') || 'Woensdag 20:30';
+
+    console.log(`[Scheduler] Settings gebruikt: poll='${pollTime}' reminder='${reminderTime}' summary='${summaryTime}' payment='${paymentTime}'`);
 
     // Parse en schedule
     const pollCron = this.parseCronTime(pollTime);

@@ -47,10 +47,13 @@ function createApp() {
   // --- Instellingen ---
 
   app.get('/api/settings', (req, res) => {
+    const settings = getSettings();
+    const now = new Date().toISOString();
+    console.log(`[API] GET /api/settings ${now} → pollTime: ${settings.pollTime}`);
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.set('Pragma', 'no-cache');
     res.set('Expires', '0');
-    res.json(getSettings());
+    res.json(settings);
   });
 
   app.get('/api/groups', async (req, res) => {
@@ -68,8 +71,12 @@ function createApp() {
 
   app.post('/api/settings', async (req, res) => {
     try {
+      const startTime = new Date().toISOString();
+      console.log(`[API] -- DRUK OP KNOP ${startTime}`);
+
       const { groupName, trainerPhone, trainingHost, trainingCost, pollTime, reminderTime, summaryTime, paymentTime, bunqAccountId, bunqAccountName } = req.body || {};
-      console.log('[Web] POST /api/settings:', { pollTime, reminderTime, summaryTime, paymentTime });
+      console.log(`[API] Input ontvangen: pollTime='${pollTime}' reminderTime='${reminderTime}' summaryTime='${summaryTime}' paymentTime='${paymentTime}'`);
+
       const settings = updateSettings({
         groupName,
         trainerPhone,
@@ -82,7 +89,10 @@ function createApp() {
         bunqAccountId,
         bunqAccountName,
       });
-      console.log('[Web] Settings opgeslagen, nu:', { pollTime: settings.pollTime });
+
+      const endTime = new Date().toISOString();
+      console.log(`[API] -- ACTIES VERWERKT ${endTime}`);
+      console.log(`[API] Settings nu opgeslagen: pollTime='${settings.pollTime}' reminderTime='${settings.reminderTime}' summaryTime='${settings.summaryTime}' paymentTime='${settings.paymentTime}'`);
       // Groep-cache verversen zodat een nieuwe groepsnaam meteen actief is.
       // Fout hierin mag het opslaan niet blokkeren.
       try {
