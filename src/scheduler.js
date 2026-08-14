@@ -270,6 +270,10 @@ class Scheduler {
         message += `💡 *Motivatie:*\n${match.motivation}\n\n`;
       }
 
+      if (match.stats) {
+        message += `📊 *Opponent Info:*\n${match.stats}\n\n`;
+      }
+
       message += `Succes! 💪`;
 
       await whatsapp.sendToTester(message);
@@ -392,6 +396,10 @@ class Scheduler {
 
       if (enriched?.motivation) {
         message += `💡 *Motivatie:*\n${enriched.motivation}\n\n`;
+      }
+
+      if (enriched?.stats) {
+        message += `📊 *Opponent Info:*\n${enriched.stats}\n\n`;
       }
 
       message += `Succes! 💪`;
