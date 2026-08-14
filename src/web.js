@@ -56,6 +56,15 @@ function createApp() {
     res.json(settings);
   });
 
+  // Browser-side fouten (bv. loadSettings() die alle retries verbruikt) zijn
+  // alleen zichtbaar in de DevTools-console, niet in deze server-logs. Client
+  // stuurt de reden hierheen zodat 'ie gewoon in Portainer meekomt.
+  app.post('/api/client-log', (req, res) => {
+    const { context, message } = req.body || {};
+    console.error(`[Browser] ${context || 'onbekend'}:`, message);
+    res.json({ ok: true });
+  });
+
   app.get('/api/groups', async (req, res) => {
     res.json(await whatsapp.listGroups());
   });

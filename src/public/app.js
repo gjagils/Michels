@@ -441,12 +441,14 @@ async function sendToTrainer() {
 
 async function loadSettings() {
   const maxRetries = 6;
+  const failures = [];
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const res = await fetch('/api/settings?t=' + Date.now(), {
         headers: { 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' }
       });
       if (!res.ok) {
+        failures.push(`poging ${attempt}: HTTP ${res.status} ${res.statusText}`);
         console.warn(`[Settings] HTTP ${res.status}, attempt ${attempt}/${maxRetries}`);
         if (attempt < maxRetries) {
           await new Promise(r => setTimeout(r, 700));
@@ -471,6 +473,7 @@ async function loadSettings() {
       console.log('[Settings] Form now shows:', { poll: document.getElementById('setting-poll-time').value });
       return;
     } catch (err) {
+      failures.push(`poging ${attempt}: ${err.name || 'Error'} — ${err.message}`);
       console.error(`[Settings] Attempt ${attempt}/${maxRetries} failed:`, err.message);
       if (attempt < maxRetries) {
         await new Promise(r => setTimeout(r, 700));
@@ -482,6 +485,22 @@ async function loadSettings() {
   // hierboven, dus dit moet zichtbaar zijn: stille leegte oogt als "instelling
   // is weg" terwijl het gewoon een mislukte laadpoging is.
   console.error('[Settings] loadSettings FAILED after all retries');
+  // Browser-console is lastig te pakken te krijgen — stuur de reden naar de
+  // server zodat 'ie gewoon in Portainer meekomt. Deze laatste poging start
+  // pas ná de retry-reeks, dus heeft de beste kans om een kortstondig
+  // netwerkhikje al voorbij te zijn.
+  try {
+    await fetch('/api/client-log', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        context: 'loadSettings',
+        message: `Alle ${maxRetries} pogingen mislukt (navigator.onLine=${navigator.onLine}): ${failures.join(' | ')}`,
+      }),
+    });
+  } catch {
+    // Ook dit faalt → écht geen verbinding, niets meer te loggen
+  }
   showToast('⚠️ Kon instellingen niet laden — ververs de pagina', 'error');
 }
 
