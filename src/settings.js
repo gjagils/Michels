@@ -21,6 +21,9 @@ const DEFAULTS = {
   bunqAccountId: process.env.BUNQ_ACCOUNT_ID || '',
   bunqAccountName: process.env.BUNQ_ACCOUNT_NAME || '',
   bunqEnvironment: process.env.BUNQ_ENVIRONMENT || 'sandbox',
+  // SBN scraping
+  sbnTeamUrl: process.env.SBN_TEAM_URL || '',
+  sbnDrawUrl: process.env.SBN_DRAW_URL || '',
 };
 
 let cache = null;
@@ -93,6 +96,12 @@ export function updateSettings(patch = {}) {
   }
   if (typeof patch.bunqEnvironment === 'string') {
     next.bunqEnvironment = ['sandbox', 'production'].includes(patch.bunqEnvironment) ? patch.bunqEnvironment : 'sandbox';
+  }
+  if (typeof patch.sbnTeamUrl === 'string') {
+    next.sbnTeamUrl = patch.sbnTeamUrl.trim();
+  }
+  if (typeof patch.sbnDrawUrl === 'string') {
+    next.sbnDrawUrl = patch.sbnDrawUrl.trim();
   }
   if (typeof patch.trainingHost === 'string') {
     next.trainingHost = patch.trainingHost.trim();

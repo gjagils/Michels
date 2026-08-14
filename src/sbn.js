@@ -12,7 +12,27 @@ class SBNService {
     try {
       console.log('[SBN] Fetching match data...');
 
-      // For now: get from sheets (SBN integration coming next)
+      const sbnTeamUrl = getSetting('sbnTeamUrl');
+      const sbnDrawUrl = getSetting('sbnDrawUrl');
+
+      // Try SBN scraping first
+      if (sbnTeamUrl && sbnDrawUrl) {
+        console.log('[SBN] Scraping SBN URLs...');
+        const sbnMatches = await scraper.scrapeAllMatches(sbnTeamUrl, sbnDrawUrl);
+        if (sbnMatches.length > 0) {
+          // Use first match
+          const sbnMatch = sbnMatches[0];
+          console.log(`[SBN] Match van SBN: ${sbnMatch.opponent || sbnMatch.team1}`);
+          return {
+            opponent: sbnMatch.opponent || sbnMatch.team1,
+            date: sbnMatch.date,
+            league: 'SBN Toernooi',
+          };
+        }
+      }
+
+      // Fallback: get from sheets
+      console.log('[SBN] Fallback naar sheets...');
       const match = await sheets.getNextMatch();
       if (!match) {
         console.log('[SBN] Geen wedstrijdgegevens gevonden');

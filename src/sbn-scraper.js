@@ -90,29 +90,118 @@ class SBNScraper {
     }
   }
 
-  async scrapeMatches(url) {
+  async scrapeTeamMatches(teamUrl) {
     try {
-      console.log(`[SBNScraper] Scraping matches van ${url}...`);
-      const html = await this.fetchURL(url);
+      console.log(`[SBNScraper] Scraping team matches van ${teamUrl}...`);
+      const html = await this.fetchURL(teamUrl);
       if (!html) return [];
 
-      // Basis HTML parsing
-      // Dit is een template - pas aan naar echte SBN website structuur
       const matches = [];
 
-      // Zoek naar match rows (aanpassen naar echte HTML structure)
-      const matchRegex = /<tr[^>]*>(.*?)<\/tr>/gs;
-      let match;
-      while ((match = matchRegex.exec(html)) !== null) {
-        const row = match[1];
-        // Parse opponent, date, league uit row
-        // Dit is afhankelijk van echte HTML structuur
+      // Parse team matches uit HTML
+      // Look for match rows met opponent data
+      const matchRowRegex = /<tr[^>]*class="[^"]*match[^"]*"[^>]*>(.*?)<\/tr>/gis;
+      const cellRegex = /<td[^>]*>(.*?)<\/td>/gis;
+
+      let rowMatch;
+      while ((rowMatch = matchRowRegex.exec(html)) !== null) {
+        const rowContent = rowMatch[1];
+        const cells = [];
+        let cellMatch;
+        while ((cellMatch = cellRegex.exec(rowContent)) !== null) {
+          cells.push(cellMatch[1].replace(/<[^>]+>/g, '').trim());
+        }
+
+        if (cells.length >= 2) {
+          // Extract opponent, date, result
+          const opponent = cells[1]?.trim() || '';
+          const date = cells[0]?.trim() || '';
+
+          if (opponent && opponent.length > 2) {
+            matches.push({
+              opponent,
+              date,
+              source: 'sbn-team',
+            });
+          }
+        }
       }
 
-      console.log(`[SBNScraper] ${matches.length} wedstrijden gevonden`);
+      console.log(`[SBNScraper] ${matches.length} wedstrijden gevonden in team overzicht`);
       return matches;
     } catch (err) {
-      console.error('[SBNScraper] Fout bij scrapen:', err.message);
+      console.error('[SBNScraper] Fout bij team scraping:', err.message);
+      return [];
+    }
+  }
+
+  async scrapeDrawMatches(drawUrl) {
+    try {
+      console.log(`[SBNScraper] Scraping draw/stand van ${drawUrl}...`);
+      const html = await this.fetchURL(drawUrl);
+      if (!html) return [];
+
+      const matches = [];
+
+      // Parse draw/stand data uit HTML
+      // Look for match/encounter rows
+      const matchRowRegex = /<tr[^>]*>(.*?)<\/tr>/gis;
+      const cellRegex = /<td[^>]*>(.*?)<\/td>/gis;
+
+      let rowMatch;
+      const rowCount = 0;
+      while ((rowMatch = matchRowRegex.exec(html)) !== null) {
+        const rowContent = rowMatch[1];
+        const cells = [];
+        let cellMatch;
+        while ((cellMatch = cellRegex.exec(rowContent)) !== null) {
+          cells.push(cellMatch[1].replace(/<[^>]+>/g, '').trim());
+        }
+
+        // Draw format: [Date] [Team1] [Result] [Team2] [Court] [Time]
+        if (cells.length >= 3) {
+          const date = cells[0]?.trim() || '';
+          const team1 = cells[1]?.trim() || '';
+          const team2 = cells[3]?.trim() || '';
+          const time = cells[5]?.trim() || '';
+
+          if (team1 && team2 && team1 !== team2) {
+            matches.push({
+              team1,
+              team2,
+              date,
+              time,
+              source: 'sbn-draw',
+            });
+          }
+        }
+      }
+
+      console.log(`[SBNScraper] ${matches.length} wedstrijden gevonden in stand`);
+      return matches;
+    } catch (err) {
+      console.error('[SBNScraper] Fout bij draw scraping:', err.message);
+      return [];
+    }
+  }
+
+  async scrapeAllMatches(teamUrl, drawUrl) {
+    try {
+      console.log('[SBNScraper] -- START SCRAPING');
+
+      const teamMatches = await this.scrapeTeamMatches(teamUrl);
+      const drawMatches = await this.scrapeDrawMatches(drawUrl);
+
+      // Merge en deduplicate
+      const merged = [...teamMatches, ...drawMatches];
+      const unique = merged.filter((m, i, arr) =>
+        arr.findIndex(x => x.opponent === m.opponent || x.team1 === m.team1) === i
+      );
+
+      console.log(`[SBNScraper] -- SCRAPING COMPLETE: ${unique.length} unique wedstrijden`);
+      return unique;
+    } catch (err) {
+      console.error('[SBNScraper] Fout bij scraping:', err.message);
       return [];
     }
   }
