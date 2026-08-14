@@ -364,6 +364,20 @@ async function sendTestPaymentRequest() {
   }
 }
 
+async function sendTestMatchReminder() {
+  try {
+    const res = await fetch('/api/match/test', { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      showToast('🧪 Test wedstrijd reminder verstuurd', 'success');
+    } else {
+      showToast(data.error || 'Fout bij test wedstrijd', 'error');
+    }
+  } catch {
+    showToast('Fout bij versturen test', 'error');
+  }
+}
+
 async function sendToGroup() {
   const msg = document.getElementById('custom-message').value.trim();
   if (!msg) return;

@@ -348,6 +348,16 @@ function createApp() {
     }
   });
 
+  app.post('/api/match/test', async (req, res) => {
+    try {
+      const result = await scheduler.sendTestMatchReminder();
+      if (result && result.ok === false) return res.status(500).json({ error: result.error });
+      res.json({ ok: true, message: 'Test wedstrijd reminder verstuurd' });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.post('/api/summary/send', async (req, res) => {
     try {
       const result = await scheduler.sendSummary();

@@ -363,6 +363,32 @@ class Scheduler {
     }
   }
 
+  async sendTestMatchReminder() {
+    try {
+      const friday = this.getNextFriday();
+      const dateStr = this.formatDisplayDate(friday);
+
+      const message =
+        `🧪 *Test Wedstrijd*\n\n` +
+        `📅 ${dateStr}\n` +
+        `🆚 Test Team\n` +
+        `🏆 Test Liga\n\n` +
+        `✅ *Opstelling:*\n` +
+        `  • Speler 1\n` +
+        `  • Speler 2\n\n` +
+        `🔄 *Reserve:*\n` +
+        `  • Speler 3\n\n` +
+        `Succes! 💪`;
+
+      await whatsapp.sendToGroup(message);
+      console.log('[Scheduler] Test wedstrijd reminder verstuurd');
+      return { ok: true };
+    } catch (err) {
+      console.error('[Scheduler] Fout bij test wedstrijd reminder:', err.message);
+      return { ok: false, error: err.message };
+    }
+  }
+
   // ── Training dag: Betaalverzoek versturen ─────────────
   // Leest de aanwezigheid uit Sheets, berekent per-persoon kosten,
   // maakt betaalverzoeken aan (bunq.me) en stuurt ze naar de groep.
