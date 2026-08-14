@@ -77,13 +77,13 @@ export function getSetting(key) {
 // alleen cijfers (bv. "+31 6 1234 5678" → "31612345678").
 export function updateSettings(patch = {}) {
   const next = { ...load() };
-  if (typeof patch.groupName === 'string') {
+  if (typeof patch.groupName === 'string' && patch.groupName.trim()) {
     next.groupName = patch.groupName.trim();
   }
-  if (typeof patch.trainerPhone === 'string') {
+  if (typeof patch.trainerPhone === 'string' && patch.trainerPhone.trim()) {
     next.trainerPhone = patch.trainerPhone.replace(/\D/g, '');
   }
-  if (typeof patch.testerPhone === 'string') {
+  if (typeof patch.testerPhone === 'string' && patch.testerPhone.trim()) {
     next.testerPhone = patch.testerPhone.replace(/\D/g, '');
   }
   if (typeof patch.trainingCost === 'string' || typeof patch.trainingCost === 'number') {
@@ -111,10 +111,10 @@ export function updateSettings(patch = {}) {
   if (typeof patch.sbnDrawUrl === 'string') {
     next.sbnDrawUrl = patch.sbnDrawUrl.trim();
   }
-  if (typeof patch.trainingHost === 'string') {
+  if (typeof patch.trainingHost === 'string' && patch.trainingHost.trim()) {
     next.trainingHost = patch.trainingHost.trim();
   }
-  if (typeof patch.bunqAccountName === 'string') {
+  if (typeof patch.bunqAccountName === 'string' && patch.bunqAccountName.trim()) {
     next.bunqAccountName = patch.bunqAccountName.trim();
   }
   // Ignore lege strings - use defaults instead

@@ -423,28 +423,44 @@ async function sendToTrainer() {
 // ── Instellingen ─────────────────────────────────────
 
 async function loadSettings() {
-  try {
-    const res = await fetch('/api/settings?t=' + Date.now(), {
-      headers: { 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' }
-    });
-    const s = await res.json();
-    console.log('[Settings] Loaded from API:', { pollTime: s.pollTime });
-    document.getElementById('setting-group-name').value = s.groupName || '';
-    document.getElementById('setting-trainer-phone').value = s.trainerPhone || '';
-    document.getElementById('setting-tester-phone').value = s.testerPhone || '';
-    document.getElementById('setting-sbn-team-url').value = s.sbnTeamUrl || '';
-    document.getElementById('setting-sbn-draw-url').value = s.sbnDrawUrl || '';
-    document.getElementById('setting-bunq-environment').value = s.bunqEnvironment || 'sandbox';
-    document.getElementById('setting-training-host').value = s.trainingHost || '';
-    document.getElementById('setting-training-cost').value = s.trainingCost || '50.00';
-    document.getElementById('setting-poll-time').value = s.pollTime || 'Maandag 18:00';
-    document.getElementById('setting-reminder-time').value = s.reminderTime || 'Dinsdag 09:00';
-    document.getElementById('setting-summary-time').value = s.summaryTime || 'Dinsdag 22:00';
-    document.getElementById('setting-payment-time').value = s.paymentTime || 'Woensdag 20:30';
-    console.log('[Settings] Form now shows:', { poll: document.getElementById('setting-poll-time').value });
-  } catch (err) {
-    console.error('[Settings] Fout bij laden:', err.message);
+  const maxRetries = 3;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const res = await fetch('/api/settings?t=' + Date.now(), {
+        headers: { 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' }
+      });
+      if (!res.ok) {
+        console.warn(`[Settings] HTTP ${res.status}, attempt ${attempt}/${maxRetries}`);
+        if (attempt < maxRetries) {
+          await new Promise(r => setTimeout(r, 500));
+          continue;
+        }
+        throw new Error(`HTTP ${res.status}`);
+      }
+      const s = await res.json();
+      console.log('[Settings] Loaded from API:', { pollTime: s.pollTime });
+      document.getElementById('setting-group-name').value = s.groupName || '';
+      document.getElementById('setting-trainer-phone').value = s.trainerPhone || '';
+      document.getElementById('setting-tester-phone').value = s.testerPhone || '';
+      document.getElementById('setting-sbn-team-url').value = s.sbnTeamUrl || '';
+      document.getElementById('setting-sbn-draw-url').value = s.sbnDrawUrl || '';
+      document.getElementById('setting-bunq-environment').value = s.bunqEnvironment || 'sandbox';
+      document.getElementById('setting-training-host').value = s.trainingHost || '';
+      document.getElementById('setting-training-cost').value = s.trainingCost || '50.00';
+      document.getElementById('setting-poll-time').value = s.pollTime || 'Maandag 18:00';
+      document.getElementById('setting-reminder-time').value = s.reminderTime || 'Dinsdag 09:00';
+      document.getElementById('setting-summary-time').value = s.summaryTime || 'Dinsdag 22:00';
+      document.getElementById('setting-payment-time').value = s.paymentTime || 'Woensdag 20:30';
+      console.log('[Settings] Form now shows:', { poll: document.getElementById('setting-poll-time').value });
+      return;
+    } catch (err) {
+      console.error(`[Settings] Attempt ${attempt}/${maxRetries} failed:`, err.message);
+      if (attempt < maxRetries) {
+        await new Promise(r => setTimeout(r, 500));
+      }
+    }
   }
+  console.error('[Settings] loadSettings FAILED after all retries');
 }
 
 let groupsLoaded = false;

@@ -354,15 +354,15 @@ class Scheduler {
           `💬 *Link:*\n` +
           `${result.url}`;
 
-        await whatsapp.sendToGroup(message);
-        console.log(`[Scheduler] Test betaalverzoek verstuurd (tab ID: ${result.tabId})`);
+        await whatsapp.sendToTester(message);
+        console.log(`[Scheduler] Test betaalverzoek verstuurd naar tester (tab ID: ${result.tabId})`);
         return { ok: true, tabId: result.tabId, url: result.url };
       } else {
         message =
           `🧪 *Test betaalverzoek mislukt*\n\n` +
           `Fout: ${result.error}`;
 
-        await whatsapp.sendToGroup(message);
+        await whatsapp.sendToTester(message);
         console.log(`[Scheduler] Test betaalverzoek mislukt: ${result.error}`);
         return { ok: false, error: result.error };
       }
@@ -404,8 +404,8 @@ class Scheduler {
 
       message += `Succes! 💪`;
 
-      await whatsapp.sendToGroup(message);
-      console.log('[Scheduler] Test wedstrijd reminder verstuurd');
+      await whatsapp.sendToTester(message);
+      console.log('[Scheduler] Test wedstrijd reminder verstuurd naar tester');
       return { ok: true };
     } catch (err) {
       console.error('[Scheduler] Fout bij test wedstrijd reminder:', err.message);
