@@ -593,6 +593,13 @@ class Scheduler {
       }
     }
 
+    // Dashboard toonde altijd deze 4 vaste strings, los van de echte
+    // ingestelde tijden — nu uit settings gelezen zoals start() dat ook doet.
+    const pollTime = getSetting('pollTime') || 'Maandag 18:00';
+    const reminderTime = getSetting('reminderTime') || 'Dinsdag 09:00';
+    const summaryTime = getSetting('summaryTime') || 'Dinsdag 22:00';
+    const paymentTime = getSetting('paymentTime') || 'Woensdag 20:30';
+
     return {
       pendingPoll: this.pendingPoll
         ? {
@@ -603,10 +610,10 @@ class Scheduler {
           }
         : null,
       jobs: {
-        poll: 'Maandag 18:00 — Training poll',
-        reminder: 'Dinsdag 09:00 — Herinnering + wedstrijd check',
-        summary: 'Dinsdag 22:00 — Samenvatting + bericht naar trainer',
-        payment: 'Woensdag 20:30 — Betaalverzoeken',
+        poll: `${pollTime} — Training poll`,
+        reminder: `${reminderTime} — Herinnering + wedstrijd check`,
+        summary: `${summaryTime} — Samenvatting + bericht naar trainer`,
+        payment: `${paymentTime} — Betaalverzoeken`,
       },
     };
   }

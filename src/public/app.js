@@ -440,7 +440,7 @@ async function sendToTrainer() {
 // ── Instellingen ─────────────────────────────────────
 
 async function loadSettings() {
-  const maxRetries = 3;
+  const maxRetries = 6;
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const res = await fetch('/api/settings?t=' + Date.now(), {
@@ -449,7 +449,7 @@ async function loadSettings() {
       if (!res.ok) {
         console.warn(`[Settings] HTTP ${res.status}, attempt ${attempt}/${maxRetries}`);
         if (attempt < maxRetries) {
-          await new Promise(r => setTimeout(r, 500));
+          await new Promise(r => setTimeout(r, 700));
           continue;
         }
         throw new Error(`HTTP ${res.status}`);
@@ -473,11 +473,16 @@ async function loadSettings() {
     } catch (err) {
       console.error(`[Settings] Attempt ${attempt}/${maxRetries} failed:`, err.message);
       if (attempt < maxRetries) {
-        await new Promise(r => setTimeout(r, 500));
+        await new Promise(r => setTimeout(r, 700));
       }
     }
   }
+  // Alle pogingen mislukt (netwerk-hikje, geen serverfout — anders had de
+  // server 'm gelogd). Velden blijven leeg door de anti-refresh-restore fix
+  // hierboven, dus dit moet zichtbaar zijn: stille leegte oogt als "instelling
+  // is weg" terwijl het gewoon een mislukte laadpoging is.
   console.error('[Settings] loadSettings FAILED after all retries');
+  showToast('⚠️ Kon instellingen niet laden — ververs de pagina', 'error');
 }
 
 let groupsLoaded = false;
