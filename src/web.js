@@ -166,11 +166,18 @@ function createApp() {
       }
 
       // Sla op in settings
-      updateSettings({
+      const now = new Date().toISOString();
+      console.log(`[bunq] -- DISCOVER ${now}`);
+      console.log(`[bunq] Opslaan: userId='${payments.userId}' accountId='${accounts[0].id}' accountName='${accounts[0].name}'`);
+
+      const saved = updateSettings({
         bunqUserId: payments.userId,
         bunqAccountId: accounts[0].id,
         bunqAccountName: accounts[0].name,
       });
+
+      console.log(`[bunq] -- DISCOVER OPGESLAGEN ${now}`);
+      console.log(`[bunq] Gecontroleerd: userId='${saved.bunqUserId}' accountId='${saved.bunqAccountId}' accountName='${saved.bunqAccountName}'`);
 
       res.json({
         ok: true,

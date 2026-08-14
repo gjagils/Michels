@@ -574,6 +574,12 @@ async function discoverBunqAccounts() {
 
 async function loadBunqAccounts() {
   try {
+    // Laad eerst de settings om bunqAccountId te hebben
+    const res1 = await fetch('/api/settings?t=' + Date.now(), {
+      headers: { 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' }
+    });
+    const currentSettings = await res1.json();
+
     const res = await fetch('/api/bunq/accounts?t=' + Date.now(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' },
@@ -590,11 +596,15 @@ async function loadBunqAccounts() {
     const select = document.getElementById('setting-bunq-account');
     select.innerHTML = '<option value="">— Selecteer rekening —</option>';
 
+    console.log('[Bunq] loadBunqAccounts: huisig accountId:', currentSettings.bunqAccountId);
     data.accounts.forEach(acc => {
       const option = document.createElement('option');
       option.value = JSON.stringify({ id: acc.id, name: acc.name });
       option.textContent = acc.name;
-      if (settings.bunqAccountId === acc.id) option.selected = true;
+      if (currentSettings.bunqAccountId === String(acc.id)) {
+        option.selected = true;
+        console.log(`[Bunq] Account '${acc.name}' geselecteerd`);
+      }
       select.appendChild(option);
     });
 
