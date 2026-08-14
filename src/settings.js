@@ -21,6 +21,8 @@ const DEFAULTS = {
   bunqAccountId: process.env.BUNQ_ACCOUNT_ID || '',
   bunqAccountName: process.env.BUNQ_ACCOUNT_NAME || '',
   bunqEnvironment: process.env.BUNQ_ENVIRONMENT || 'sandbox',
+  // Claude AI
+  anthropicApiKey: process.env.ANTHROPIC_API_KEY || '',
   // SBN scraping
   sbnTeamUrl: process.env.SBN_TEAM_URL || '',
   sbnDrawUrl: process.env.SBN_DRAW_URL || '',
