@@ -1,6 +1,17 @@
 let pollInterval;
 let currentPollDate = null; // Voor betaalverzoeken per poll-datum
 
+// Browsers herstellen tekstvelden bij een refresh soms naar wat er vóór
+// de refresh in stond (los van wat de server teruggeeft, en autocomplete="off"
+// dekt dit niet in elke browser). Direct leegmaken zodra dit script draait,
+// vóórdat loadSettings() de echte waarde invult — zo is een herstelde oude
+// waarde hooguit een fractie van een seconde zichtbaar.
+['setting-poll-time', 'setting-reminder-time', 'setting-summary-time', 'setting-payment-time']
+  .forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+
 // ── Tabs ─────────────────────────────────────────────
 
 function switchTab(tabName) {
