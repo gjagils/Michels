@@ -431,6 +431,7 @@ async function loadSettings() {
     console.log('[Settings] Loaded from API:', { pollTime: s.pollTime });
     document.getElementById('setting-group-name').value = s.groupName || '';
     document.getElementById('setting-trainer-phone').value = s.trainerPhone || '';
+    document.getElementById('setting-tester-phone').value = s.testerPhone || '';
     document.getElementById('setting-bunq-environment').value = s.bunqEnvironment || 'sandbox';
     document.getElementById('setting-training-host').value = s.trainingHost || '';
     document.getElementById('setting-training-cost').value = s.trainingCost || '50.00';
@@ -487,6 +488,7 @@ async function resetWhatsapp() {
 async function saveSettings() {
   const groupName = document.getElementById('setting-group-name').value.trim();
   const trainerPhone = document.getElementById('setting-trainer-phone').value.trim();
+  const testerPhone = document.getElementById('setting-tester-phone').value.trim();
   const trainingHost = document.getElementById('setting-training-host').value.trim();
   const trainingCost = document.getElementById('setting-training-cost').value.trim();
   const pollTime = document.getElementById('setting-poll-time').value.trim();
@@ -505,7 +507,7 @@ async function saveSettings() {
   }
 
   try {
-    const body = { groupName, trainerPhone, trainingHost, trainingCost, pollTime, reminderTime, summaryTime, paymentTime };
+    const body = { groupName, trainerPhone, testerPhone, trainingHost, trainingCost, pollTime, reminderTime, summaryTime, paymentTime };
     if (bunqAccountId) {
       body.bunqAccountId = bunqAccountId;
       body.bunqAccountName = bunqAccountName;

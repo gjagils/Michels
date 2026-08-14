@@ -74,12 +74,13 @@ function createApp() {
       const startTime = new Date().toISOString();
       console.log(`[API] -- DRUK OP KNOP ${startTime}`);
 
-      const { groupName, trainerPhone, trainingHost, trainingCost, pollTime, reminderTime, summaryTime, paymentTime, bunqAccountId, bunqAccountName } = req.body || {};
+      const { groupName, trainerPhone, testerPhone, trainingHost, trainingCost, pollTime, reminderTime, summaryTime, paymentTime, bunqAccountId, bunqAccountName } = req.body || {};
       console.log(`[API] Input ontvangen: pollTime='${pollTime}' reminderTime='${reminderTime}' summaryTime='${summaryTime}' paymentTime='${paymentTime}'`);
 
       const settings = updateSettings({
         groupName,
         trainerPhone,
+        testerPhone,
         trainingHost,
         trainingCost,
         pollTime,

@@ -215,6 +215,15 @@ class WhatsAppManager {
     console.log('[WhatsApp] Bericht naar trainer gestuurd');
   }
 
+  async sendToTester(message) {
+    const phone = getSetting('testerPhone');
+    if (!phone) {
+      throw new Error('Tester-telefoonnummer niet ingesteld');
+    }
+    await this.sendToPhone(phone, message);
+    console.log('[WhatsApp] Bericht naar tester gestuurd');
+  }
+
   // Stuur een DM naar een willekeurig telefoonnummer (alleen cijfers, met landcode)
   async sendToPhone(phone, message) {
     const jid = `${phone}@s.whatsapp.net`;

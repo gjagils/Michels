@@ -7,6 +7,7 @@ const SETTINGS_PATH = '/data/settings.json';
 const DEFAULTS = {
   groupName: process.env.GROUP_NAME || '',
   trainerPhone: process.env.TRAINER_PHONE || '',
+  testerPhone: process.env.TESTER_PHONE || '',
   trainingHost: process.env.TRAINING_HOST || '',
   trainingCost: process.env.TRAINING_COST || '50.00',
   // Schema times (cron schedule)
@@ -70,6 +71,9 @@ export function updateSettings(patch = {}) {
   }
   if (typeof patch.trainerPhone === 'string') {
     next.trainerPhone = patch.trainerPhone.replace(/\D/g, '');
+  }
+  if (typeof patch.testerPhone === 'string') {
+    next.testerPhone = patch.testerPhone.replace(/\D/g, '');
   }
   if (typeof patch.trainingCost === 'string' || typeof patch.trainingCost === 'number') {
     const parsed = parseFloat(String(patch.trainingCost).replace(',', '.'));
