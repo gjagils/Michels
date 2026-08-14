@@ -511,7 +511,19 @@ async function saveSettings() {
   }
 
   try {
-    const body = { groupName, trainerPhone, testerPhone, sbnTeamUrl, sbnDrawUrl, trainingHost, trainingCost, pollTime, reminderTime, summaryTime, paymentTime };
+    // Only include non-empty fields to avoid overwriting defaults with empty strings
+    const body = {};
+    if (groupName) body.groupName = groupName;
+    if (trainerPhone) body.trainerPhone = trainerPhone;
+    if (testerPhone) body.testerPhone = testerPhone;
+    if (sbnTeamUrl) body.sbnTeamUrl = sbnTeamUrl;
+    if (sbnDrawUrl) body.sbnDrawUrl = sbnDrawUrl;
+    if (trainingHost) body.trainingHost = trainingHost;
+    if (trainingCost) body.trainingCost = trainingCost;
+    if (pollTime) body.pollTime = pollTime;
+    if (reminderTime) body.reminderTime = reminderTime;
+    if (summaryTime) body.summaryTime = summaryTime;
+    if (paymentTime) body.paymentTime = paymentTime;
     if (bunqAccountId) {
       body.bunqAccountId = bunqAccountId;
       body.bunqAccountName = bunqAccountName;
