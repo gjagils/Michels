@@ -36,12 +36,17 @@ function load() {
       const stat = fs.statSync(SETTINGS_PATH);
       if (stat.mtimeMs !== lastModified) {
         // Bestand is aangepast, invalideer cache
+        console.log('[Settings] File changed, cache invalidated');
         cache = null;
+        lastModified = stat.mtimeMs;
       }
     }
   } catch {}
 
-  if (cache) return cache;
+  if (cache) {
+    console.log('[Settings] Returning cached settings:', { pollTime: cache.pollTime });
+    return cache;
+  }
 
   let stored = {};
   try {
@@ -54,6 +59,7 @@ function load() {
     console.error('[Settings] Kon settings niet laden:', err.message);
   }
   cache = { ...DEFAULTS, ...stored };
+  console.log('[Settings] Loaded:', { pollTime: cache.pollTime, reminderTime: cache.reminderTime, summaryTime: cache.summaryTime, paymentTime: cache.paymentTime });
   return cache;
 }
 

@@ -52,12 +52,13 @@ class SBNService {
 
     try {
       const apiKey = getSetting('anthropicApiKey');
+      console.log(`[SBN] apiKey set: ${apiKey ? 'YES' : 'NO'}`);
       if (!apiKey) {
-        console.log('[SBN] Anthropic API key niet ingesteld, skip motivation');
+        console.log('[SBN] ⚠️ Anthropic API key NOT ingesteld, skip motivation');
         return match;
       }
 
-      console.log('[SBN] Genereren motivatie + stats via Claude...');
+      console.log('[SBN] 🤖 Genereren motivatie + stats via Claude...');
       const prompt = `Je bent een squash coach. Geef:
 1. Kort (1-2 zinnen) motivatie en tips voor wedstrijd tegen ${match.opponent} in ${match.league}
 2. Korte "opponent stats" (sterkte: 1-10, speelstijl, 1-2 tips)
@@ -81,12 +82,15 @@ STATS: [tekst]`;
       });
 
       if (!res.ok) {
-        console.error(`[SBN] Claude API error: ${res.status}`);
+        console.error(`[SBN] ❌ Claude API error: ${res.status}`);
+        const errText = await res.text();
+        console.error(`[SBN] Error details: ${errText}`);
         return match;
       }
 
       const data = await res.json();
       const response = data.content?.[0]?.text || '';
+      console.log(`[SBN] Claude response received: ${response.substring(0, 80)}...`);
 
       // Parse response in motivatie + stats
       const motivationMatch = response.match(/MOTIVATIE:\s*(.*?)(?=STATS:|$)/s);
@@ -95,7 +99,8 @@ STATS: [tekst]`;
       const motivation = motivationMatch?.[1]?.trim() || response;
       const stats = statsMatch?.[1]?.trim() || '';
 
-      console.log(`[SBN] Motivatie + stats gegenereerd`);
+      console.log(`[SBN] ✅ Motivatie gegenereerd: ${motivation.substring(0, 60)}...`);
+      if (stats) console.log(`[SBN] ✅ Stats gegenereerd: ${stats.substring(0, 60)}...`);
 
       // Cache het resultaat
       scraper.cacheMotivation(match.opponent, match.league, motivation, stats);
