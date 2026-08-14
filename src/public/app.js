@@ -565,13 +565,16 @@ async function saveSettings() {
       if (data.scheduleChanged) {
         showToast('⏳ Instellingen opgeslagen - Server restart...', 'success');
         localStorage.setItem('activeTab', 'settings');
+        // Yield to event loop to let rendering happen before reload
+        await new Promise(resolve => setTimeout(resolve, 100));
+        // Then wait 1s more to let user see the updated form
         setTimeout(() => {
           fetch('/api/restart', { method: 'POST' }).catch(() => {});
           setTimeout(() => {
             console.log('[Settings] Wacht totdat server weer online is...');
             location.reload();
           }, 4000);
-        }, 500);
+        }, 1000);
       } else {
         showToast('Instellingen opgeslagen!', 'success');
         fetchStatus();
