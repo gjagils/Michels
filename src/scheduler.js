@@ -2,6 +2,7 @@ import cron from 'node-cron';
 import whatsapp from './whatsapp.js';
 import sheets from './sheets.js';
 import payments from './payments.js';
+import sbn from './sbn.js';
 import { interpretResponse } from './interpret.js';
 import { getSetting } from './settings.js';
 
