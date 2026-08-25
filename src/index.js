@@ -52,7 +52,7 @@ async function main() {
 
   whatsapp.onStatusChange((status) => {
     if (status === 'connected') {
-      scheduler.start();
+      scheduler.restart();
     }
   });
 
