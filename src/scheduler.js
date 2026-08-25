@@ -93,6 +93,7 @@ class Scheduler {
   }
 
   start() {
+    this.stop();
     const tz = { timezone: 'Europe/Amsterdam' };
 
     // Lees times uit settings, fallback naar defaults
